@@ -1,0 +1,2 @@
+# qsolog
+QSO Logging app
