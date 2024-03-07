@@ -1,6 +1,8 @@
 import utils
 import os
 import json
+import pickle
+
 
 class Contact:
     def __init__(self, cid,my_callsign,their_callsign,time,band,mode,sat,prop_mode_sat, comment):
@@ -35,6 +37,12 @@ class Contact:
     def add_field(self,field,value):
         self.other[field]=value
 
+    @classmethod
+    def from_json(cls,json_obj):
+        c = cls(json_obj["cid"], json_obj["my_callsign"], json_obj["their_callsign"], json_obj["time"], json_obj["band"], json_obj["mode"], json_obj["sat"], json_obj["prop_mode_sat"], json_obj[" comment"])
+        c.other = json_obj["other"]
+        return c
+
 
 
 
@@ -42,6 +50,7 @@ class LogBook:
     def __init__(self,name,path):
         self.name = name
         self.path = path #full path
+        self.last_id = 0
         self.contacts = {} #callsign:[contacts]
     
     def add_contact(self,contact):
@@ -57,11 +66,25 @@ class LogBook:
         idx = self.contacts[contact.their_callsign].index(contact)
         self.contacts[contact.their_callsign][idx]=contact
 
-    def read_contacts(self):
-        if os.path.exists(self.path):
-            with open(path,'r+') as file:
-                # Read and add contacts.
-                logbook = json.load(file) 
+    def get_next_id(self):
+        self.last_id +=1
+        return self.last_id - 1
+
+    def save_logbook(self):
+        with open(self.path,"wb") as file:
+            pickle.dump(self,file)
+    
+    @classmethod
+    def load_logbook(self,path):
+        if os.path.exists(path):
+            with open(path,"rb") as file:
+                return pickle.load(file)
+        else:
+            return self("new log",path)
+    
+    
+
+    
 
 
 
