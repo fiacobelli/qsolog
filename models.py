@@ -52,12 +52,14 @@ class LogBook:
         self.path = path #full path
         self.last_id = 0
         self.contacts = {} #callsign:[contacts]
+        self.contacts_by_id=[]
     
     def add_contact(self,contact):
         if contact.their_callsign in self.contacts:
             self.contacts[contact.their_callsign].append(contact)
         else:
             self.contacts[contact.their_callsign] = [contact]
+        self.contacts_by_id.append(contact)
 
     def remove_contact(self,contact):
         return self.contacts[contact.their_callsign].remove(contact)

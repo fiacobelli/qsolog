@@ -39,8 +39,14 @@ def enter_qso(logbook):
     sat_prop = input("Satellite propagation (blank for none):")
     comments = input("Comments:")
     qso = m.Contact(cid,my_call,their_call,time,band,mode,sat,sat_prop,comments)
-    logbook.add_contact(qso)
+    insert_qso(qso,logbook)
     print("QSO entered:"+str(qso.__dict__))
+
+def insert_qso(contact,logbook):
+    logbook.add_contact(contact)
+    return True
+
+
 
 
 if __name__=="__main__":
