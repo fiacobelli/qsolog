@@ -116,101 +116,6 @@
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
-     <item>
-      <property name="text">
-       <string>2200 (135 kHz)</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>630 (472 kHz)</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>160 (1.8 MHz)</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>80 (3.5 MHz)</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>60 (5.3 MHz)</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>40 (7 MHz)</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>30 (10.1 MHz)</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>20 (14 MHz)</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>17 (18 MHz)</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>15 (21 MHz)</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>12 (24 MHz)</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>10 (28 MHz)</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>6 (50 MHz)</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>2 (144 MHz)</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>1.25 (222 MHz)</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>70 cm (420 MHz)</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>33 cm (902 MHz)</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>23 cm (1240 MHz)</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>SHF &amp; EHF</string>
-      </property>
-     </item>
     </widget>
     <widget class="QLabel" name="label_4">
      <property name="text">
@@ -221,56 +126,6 @@
      <property name="editable">
       <bool>true</bool>
      </property>
-     <item>
-      <property name="text">
-       <string>USB</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>LSB</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>AM</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>FM</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>DMR</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>C4FM</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>DSTAR</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>OLIVIA</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>PSK31</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>FT8</string>
-      </property>
-     </item>
     </widget>
     <widget class="QLabel" name="label_9">
      <property name="text">
@@ -287,8 +142,17 @@
      <property name="toolTip">
       <string>No decimals</string>
      </property>
+     <property name="suffix">
+      <string>Hz</string>
+     </property>
+     <property name="prefix">
+      <string/>
+     </property>
      <property name="maximum">
       <number>999999999</number>
+     </property>
+     <property name="singleStep">
+      <number>0</number>
      </property>
     </widget>
    </widget>
@@ -391,7 +255,7 @@
      <property name="currentIndex">
       <number>1</number>
      </property>
-     <widget class="QWidget" name="tab_3">
+     <widget class="QWidget" name="generalTabl">
       <attribute name="title">
        <string>General Info</string>
       </attribute>
@@ -463,7 +327,47 @@
        </layout>
       </widget>
      </widget>
-     <widget class="QWidget" name="tab_2">
+     <widget class="QWidget" name="splitTab">
+      <attribute name="title">
+       <string>Split Op</string>
+      </attribute>
+      <widget class="QLabel" name="label_19">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>20</y>
+         <width>81</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>TX Frequency</string>
+       </property>
+      </widget>
+      <widget class="QSpinBox" name="frequencyTXSpinBox">
+       <property name="geometry">
+        <rect>
+         <x>100</x>
+         <y>20</y>
+         <width>101</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="toolTip">
+        <string>No decimals</string>
+       </property>
+       <property name="maximum">
+        <number>999999999</number>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="satelliteTab">
       <attribute name="title">
        <string>Satellite</string>
       </attribute>
@@ -504,7 +408,7 @@
        </layout>
       </widget>
      </widget>
-     <widget class="QWidget" name="tab">
+     <widget class="QWidget" name="contestTab">
       <attribute name="title">
        <string>Contest</string>
       </attribute>

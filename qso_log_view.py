@@ -20,6 +20,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def setup_configurations(self):
         self.my_callsign = "KE9FID"
         self.groupBox.setTitle("DE "+self.my_callsign)
+        self.statusbar.showMessage("Logging QSO DE "+self.my_callsign)
         self.logbook_change = False
 
     def setup_basics(self):
@@ -32,25 +33,33 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.localDateTimeEdit.setDateTime(QDateTime.currentDateTime())
         self.zuluDateTimeEdit.setDateTime(QDateTime.currentDateTime())
         self.theirCallLineEdit.textChanged.connect(self.always_upper)
+        self.bandComboBox.addItems(qsoc.get_bands())
+        self.modeComboBox.addItems(['USB','LSB','AM','FM','OLIVIA'])
 
 
     def setup_buttons(self):
         self.saveQSOButtonBox.accepted.connect(self.save_qso)
 
     def setup_menu(self):
-        self.action_Open_Logbook.triggered.connect(self.file_open)
+        self.action_Open_Logbook.triggered.connect(self.open_logbook)
         self.action_Save_Logbook.triggered.connect(self.save_logbook)
+        self.action_New_Logbook.triggered.connect(self.new_logbook)
         self.action_Exit.triggered.connect(self.close)
 
     
 
 
 #### Functions related to loading and saving QSOs
-    def file_open(self):
+    def open_logbook(self):
         filename = QFileDialog.getOpenFileName(self, 'Open file', 
    './',"Log files (*.log)")
         self.logbook = qsoc.load_logbook(filename[0])
         self.update_model()
+        return True
+
+    def new_logbook(self):
+        filename = QFileDialog.getSaveFileName(self, 'New logbook','./', 'log')[0]
+        self.logbook = qsoc.get_new_logbook(self.my_callsign,filename)
         return True
 
 
@@ -58,9 +67,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         qsoc.insert_contact(self.logbook,self.my_callsign,self.theirCallLineEdit.text(),self.dateEdit.date().toPyDate(),
                             self.timeEdit.time().toPyTime(), self.bandComboBox.currentText(),self.modeComboBox.currentText(),
                             self.satNameComboBox.currentText(),self.satModeLineEdit.text(), self.commentsPlainTextEdit.toPlainText(),
-                            their_park_id=self.theirParkIDLineEdit.text(),their_park_name=self.theirParkNameLineEdit.text()
+                            POTA_REF=self.theirParkIDLineEdit.text(),NOTES=self.theirParkNameLineEdit.text(),
+                            RST_RCVD=self.RSTReceivedLineEdit.text(),RST_SENT=self.RSTSendLineEdit.text(),
+                            FREQ = self.frequencySpinBox.text(), FREQ_RX=self.frequencyTXSpinBox.text()
                             )
         self.update_model()
+        self.clear_qso_fields()
 
 # Updating elements in the view.  
     def update_model(self):
@@ -68,12 +80,30 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.logListTableView.setModel(model)
         self.logbook_change = True
 
+    def clear_qso_fields(self):
+        self.theirCallLineEdit.clear()
+        self.dateEdit.setDate(QDate.currentDate())
+        self.timeEdit.setTime(QTime.currentTime())
+        # self.bandComboBox.currentText()
+        # self.modeComboBox.currentText()
+        # self.satNameComboBox.currentText()
+        # self.satModeLineEdit.text()
+        self.commentsPlainTextEdit.clear()
+        self.theirParkIDLineEdit.clear()
+        self.theirParkNameLineEdit.clear()
+        self.RSTReceivedLineEdit.clear()
+        self.RSTSendLineEdit.clear()
+        self.frequencySpinBox.clear()
+        self.frequencyTXSpinBox.clear()
+
 # Functions related to the timer and updating stuff at intervals.
     def update_all(self):
         self.localDateTimeEdit.setDateTime(QDateTime.currentDateTime())
         self.zuluDateTimeEdit.setDateTime(QDateTime.currentDateTime())
-        self.statusbar.showMessage("")
+        stsmsg = self.statusbar.currentMessage()
+        self.statusbar.clearMessage()
         self.save_logbook()
+        self.statusbar.showMessage(stsmsg)
 
     def save_logbook(self):
         if self.logbook_change:
