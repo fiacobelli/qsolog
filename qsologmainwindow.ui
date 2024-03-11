@@ -92,122 +92,6 @@
     </widget>
     <widget class="QTimeEdit" name="timeEdit"/>
    </widget>
-   <widget class="QSplitter" name="splitter_2">
-    <property name="geometry">
-     <rect>
-      <x>40</x>
-      <y>350</y>
-      <width>461</width>
-      <height>22</height>
-     </rect>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Horizontal</enum>
-    </property>
-    <widget class="QLabel" name="label_3">
-     <property name="text">
-      <string>Band</string>
-     </property>
-    </widget>
-    <widget class="QComboBox" name="bandComboBox">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-    </widget>
-    <widget class="QLabel" name="label_4">
-     <property name="text">
-      <string>Mode</string>
-     </property>
-    </widget>
-    <widget class="QComboBox" name="modeComboBox">
-     <property name="editable">
-      <bool>true</bool>
-     </property>
-    </widget>
-    <widget class="QLabel" name="label_9">
-     <property name="text">
-      <string>Frequency</string>
-     </property>
-    </widget>
-    <widget class="QSpinBox" name="frequencySpinBox">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="toolTip">
-      <string>No decimals</string>
-     </property>
-     <property name="suffix">
-      <string>Hz</string>
-     </property>
-     <property name="prefix">
-      <string/>
-     </property>
-     <property name="maximum">
-      <number>999999999</number>
-     </property>
-     <property name="singleStep">
-      <number>0</number>
-     </property>
-    </widget>
-   </widget>
-   <widget class="QLabel" name="label_11">
-    <property name="geometry">
-     <rect>
-      <x>40</x>
-      <y>390</y>
-      <width>49</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>RST Sent</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_12">
-    <property name="geometry">
-     <rect>
-      <x>140</x>
-      <y>390</y>
-      <width>81</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>RST Received</string>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="RSTSendLineEdit">
-    <property name="geometry">
-     <rect>
-      <x>90</x>
-      <y>390</y>
-      <width>41</width>
-      <height>22</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>The RST you sent them</string>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="RSTReceivedLineEdit">
-    <property name="geometry">
-     <rect>
-      <x>220</x>
-      <y>390</y>
-      <width>41</width>
-      <height>22</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>The RST you received from them</string>
-    </property>
-   </widget>
    <widget class="QLineEdit" name="searchLineEdit">
     <property name="geometry">
      <rect>
@@ -246,41 +130,129 @@
     <widget class="QTabWidget" name="specialFieldsTabWidget">
      <property name="geometry">
       <rect>
-       <x>500</x>
-       <y>30</y>
+       <x>510</x>
+       <y>20</y>
        <width>271</width>
-       <height>211</height>
+       <height>251</height>
       </rect>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="generalTabl">
       <attribute name="title">
        <string>General Info</string>
       </attribute>
-      <widget class="QTextBrowser" name="generalInfoTextBrowser">
+      <widget class="QCommandLinkButton" name="qrzCommandLinkButton">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>180</y>
+         <width>71</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>QRZ</string>
+       </property>
+      </widget>
+      <widget class="QCommandLinkButton" name="mapCommandLinkButton">
+       <property name="geometry">
+        <rect>
+         <x>180</x>
+         <y>180</y>
+         <width>71</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Map</string>
+       </property>
+      </widget>
+      <widget class="QWidget" name="">
        <property name="geometry">
         <rect>
          <x>10</x>
          <y>10</y>
-         <width>241</width>
+         <width>255</width>
          <height>171</height>
         </rect>
        </property>
+       <layout class="QFormLayout" name="formLayout_3">
+        <item row="0" column="0">
+         <widget class="QLabel" name="label_20">
+          <property name="text">
+           <string>Name</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLineEdit" name="qsoNameLineEdit"/>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_21">
+          <property name="text">
+           <string>Grid</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QLineEdit" name="qsoGridLineEdit"/>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="label_22">
+          <property name="text">
+           <string>Address</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QLineEdit" name="qsoAddressLineEdit"/>
+        </item>
+        <item row="3" column="0">
+         <widget class="QLabel" name="label_23">
+          <property name="text">
+           <string>State</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="1">
+         <widget class="QLineEdit" name="qsoStateLineEdit"/>
+        </item>
+        <item row="4" column="0">
+         <widget class="QLabel" name="label_24">
+          <property name="text">
+           <string>County</string>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="1">
+         <widget class="QLineEdit" name="qsoCountyLineEdit"/>
+        </item>
+        <item row="5" column="0">
+         <widget class="QLabel" name="label_25">
+          <property name="text">
+           <string>Country</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="1">
+         <widget class="QLineEdit" name="qsoCountryLineEdit"/>
+        </item>
+       </layout>
       </widget>
      </widget>
      <widget class="QWidget" name="potaTab">
       <attribute name="title">
        <string>POTA</string>
       </attribute>
-      <widget class="QWidget" name="">
+      <widget class="QWidget" name="layoutWidget">
        <property name="geometry">
         <rect>
-         <x>30</x>
-         <y>20</y>
+         <x>10</x>
+         <y>10</y>
          <width>199</width>
-         <height>108</height>
+         <height>164</height>
         </rect>
        </property>
        <layout class="QFormLayout" name="formLayout">
@@ -312,7 +284,7 @@
          </widget>
         </item>
         <item row="2" column="1">
-         <widget class="QLineEdit" name="theirStateLineEdit"/>
+         <widget class="QLineEdit" name="potaStateLineEdit"/>
         </item>
         <item row="3" column="0">
          <widget class="QLabel" name="label_18">
@@ -322,9 +294,42 @@
          </widget>
         </item>
         <item row="3" column="1">
-         <widget class="QLineEdit" name="theirGridLineEdit"/>
+         <widget class="QLineEdit" name="potaGridLineEdit"/>
+        </item>
+        <item row="4" column="0">
+         <widget class="QLabel" name="label_26">
+          <property name="text">
+           <string>Latitude</string>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="1">
+         <widget class="QLineEdit" name="potaLatLineEdit"/>
+        </item>
+        <item row="5" column="0">
+         <widget class="QLabel" name="label_27">
+          <property name="text">
+           <string>Longitude</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="1">
+         <widget class="QLineEdit" name="potaLonLineEdit"/>
         </item>
        </layout>
+      </widget>
+      <widget class="QCommandLinkButton" name="commandLinkButton">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>170</y>
+         <width>185</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>More Park Details</string>
+       </property>
       </widget>
      </widget>
      <widget class="QWidget" name="splitTab">
@@ -344,7 +349,7 @@
         <string>TX Frequency</string>
        </property>
       </widget>
-      <widget class="QSpinBox" name="frequencyTXSpinBox">
+      <widget class="QDoubleSpinBox" name="frequencyTXDoubleSpinBox">
        <property name="geometry">
         <rect>
          <x>100</x>
@@ -362,8 +367,14 @@
        <property name="toolTip">
         <string>No decimals</string>
        </property>
+       <property name="suffix">
+        <string>MHz</string>
+       </property>
+       <property name="decimals">
+        <number>5</number>
+       </property>
        <property name="maximum">
-        <number>999999999</number>
+        <double>7500000.990000000223517</double>
        </property>
       </widget>
      </widget>
@@ -371,7 +382,7 @@
       <attribute name="title">
        <string>Satellite</string>
       </attribute>
-      <widget class="QWidget" name="">
+      <widget class="QWidget" name="layoutWidget">
        <property name="geometry">
         <rect>
          <x>20</x>
@@ -412,6 +423,90 @@
       <attribute name="title">
        <string>Contest</string>
       </attribute>
+     </widget>
+    </widget>
+    <widget class="QSplitter" name="splitter_2">
+     <property name="geometry">
+      <rect>
+       <x>8</x>
+       <y>110</y>
+       <width>381</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <widget class="QLabel" name="label_4">
+      <property name="text">
+       <string>Mode</string>
+      </property>
+     </widget>
+     <widget class="QComboBox" name="modeComboBox">
+      <property name="editable">
+       <bool>true</bool>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_11">
+      <property name="text">
+       <string>RST Sent</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="RSTSendLineEdit">
+      <property name="toolTip">
+       <string>The RST you sent them</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_12">
+      <property name="text">
+       <string>RST Received</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="lineEdit">
+      <property name="toolTip">
+       <string>The RST you received from them</string>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QSplitter" name="splitter_4">
+     <property name="geometry">
+      <rect>
+       <x>180</x>
+       <y>70</y>
+       <width>211</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <widget class="QLabel" name="label_9">
+      <property name="text">
+       <string>Frequency</string>
+      </property>
+     </widget>
+     <widget class="QDoubleSpinBox" name="frequencyDoubleSpinBox">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="toolTip">
+       <string>No decimals</string>
+      </property>
+      <property name="prefix">
+       <string/>
+      </property>
+      <property name="suffix">
+       <string>MHz</string>
+      </property>
+      <property name="decimals">
+       <number>5</number>
+      </property>
+      <property name="maximum">
+       <double>7500000.990000000223517</double>
+      </property>
      </widget>
     </widget>
    </widget>
@@ -458,23 +553,52 @@
      </property>
     </widget>
    </widget>
+   <widget class="QComboBox" name="bandComboBox">
+    <property name="geometry">
+     <rect>
+      <x>76</x>
+      <y>350</y>
+      <width>120</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
+    <property name="statusTip">
+     <string>Select the band of this QSO</string>
+    </property>
+    <property name="editable">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_3">
+    <property name="geometry">
+     <rect>
+      <x>40</x>
+      <y>350</y>
+      <width>27</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Band</string>
+    </property>
+   </widget>
    <zorder>groupBox</zorder>
+   <zorder>splitter_3</zorder>
+   <zorder>bandComboBox</zorder>
+   <zorder>label_3</zorder>
    <zorder>splitter</zorder>
-   <zorder>splitter_2</zorder>
    <zorder>label_5</zorder>
    <zorder>commentsPlainTextEdit</zorder>
    <zorder>saveQSOButtonBox</zorder>
-   <zorder>label_11</zorder>
-   <zorder>label_12</zorder>
-   <zorder>RSTSendLineEdit</zorder>
-   <zorder>RSTReceivedLineEdit</zorder>
    <zorder>searchLineEdit</zorder>
    <zorder>label_13</zorder>
-   <zorder>label_14</zorder>
-   <zorder>label_15</zorder>
    <zorder>logListTableView</zorder>
-   <zorder>localDateTimeEdit</zorder>
-   <zorder>zuluDateTimeEdit</zorder>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -515,10 +639,11 @@
    </widget>
    <widget class="QMenu" name="menuM_y_End">
     <property name="title">
-     <string>M&amp;y End</string>
+     <string>&amp;I'm At...</string>
     </property>
     <addaction name="actionMy_Rig"/>
     <addaction name="actionThis_is_a_POTA_activation"/>
+    <addaction name="actionAt_a_SOTA_activation"/>
    </widget>
    <addaction name="menu_File"/>
    <addaction name="menu_Configure"/>
@@ -584,12 +709,12 @@
   </action>
   <action name="actionMy_Rig">
    <property name="text">
-    <string>My Rig RIght Now</string>
+    <string>My QTH RIght Now</string>
    </property>
   </action>
   <action name="actionThis_is_a_POTA_activation">
    <property name="text">
-    <string>This is a &amp;POTA activation</string>
+    <string>At a &amp;POTA activation</string>
    </property>
   </action>
   <action name="actionImport_A_DI">
@@ -607,6 +732,11 @@
     <string>Send to QR&amp;Z</string>
    </property>
   </action>
+  <action name="actionAt_a_SOTA_activation">
+   <property name="text">
+    <string>At a SOTA activation</string>
+   </property>
+  </action>
  </widget>
  <tabstops>
   <tabstop>theirCallLineEdit</tabstop>
@@ -614,14 +744,14 @@
   <tabstop>timeEdit</tabstop>
   <tabstop>bandComboBox</tabstop>
   <tabstop>modeComboBox</tabstop>
-  <tabstop>frequencySpinBox</tabstop>
+  <tabstop>frequencyDoubleSpinBox</tabstop>
   <tabstop>RSTSendLineEdit</tabstop>
-  <tabstop>RSTReceivedLineEdit</tabstop>
+  <tabstop>lineEdit</tabstop>
   <tabstop>specialFieldsTabWidget</tabstop>
   <tabstop>theirParkIDLineEdit</tabstop>
   <tabstop>theirParkNameLineEdit</tabstop>
-  <tabstop>theirStateLineEdit</tabstop>
-  <tabstop>theirGridLineEdit</tabstop>
+  <tabstop>potaStateLineEdit</tabstop>
+  <tabstop>potaGridLineEdit</tabstop>
   <tabstop>commentsPlainTextEdit</tabstop>
   <tabstop>searchLineEdit</tabstop>
   <tabstop>satNameComboBox</tabstop>

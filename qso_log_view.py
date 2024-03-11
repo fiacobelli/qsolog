@@ -5,6 +5,7 @@ from PyQt6.QtGui import *
 from PyQt6.QtCore import QTimer, QDateTime, QDate, QTime
 
 from qsomain import Ui_MainWindow
+from config_dialog import Form
 import models as m
 import qso_controller as qsoc
 
@@ -34,7 +35,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.zuluDateTimeEdit.setDateTime(QDateTime.currentDateTime())
         self.theirCallLineEdit.textChanged.connect(self.always_upper)
         self.bandComboBox.addItems(qsoc.get_bands())
-        self.modeComboBox.addItems(['USB','LSB','AM','FM','OLIVIA'])
+        self.modeComboBox.addItems(qsoc.get_modes())
 
 
     def setup_buttons(self):
@@ -45,8 +46,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.action_Save_Logbook.triggered.connect(self.save_logbook)
         self.action_New_Logbook.triggered.connect(self.new_logbook)
         self.action_Exit.triggered.connect(self.close)
+        self.action_My_Information.triggered.connect(lambda:self.open_config('mine'))
+
 
     
+#### Open Config dialogs.
+    def open_config(self,config):
+        if config=='mine':
+            dlg = Form(self)
+            dlg.make_window("./qsolog.config")
+            dlg.setWindowTitle("My Information")
+            dlg.setParent(self)
+            dlg.exec()
+
 
 
 #### Functions related to loading and saving QSOs

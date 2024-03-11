@@ -188,6 +188,56 @@ VUCC_GRIDS="VUCC_GRIDS"
 WEB="WEB"
 WWFF_REF="WWFF_REF"
 
+# QRZ Fields for Callsign lookup
+QRZ_CALL = "call"
+QRZ_ALIASES ="aliases"
+QRZ_DXCC="dxcc" 
+QRZ_FNAME="fname" 
+QRZ_NAME="name" 
+QRZ_ADDR1="addr1" 
+QRZ_ADDR2="addr2" 
+QRZ_STATE="state" 
+QRZ_ZIP="zip" 
+QRZ_COUNTRY="country" 
+QRZ_CCODE="ccode" 
+QRZ_LAT="lat" 
+QRZ_LON="lon" 
+QRZ_GRID="grid" 
+QRZ_COUNTY="county" 
+QRZ_FIPS="fips" 
+QRZ_LAND="land" 
+QRZ_EFDATE="efdate" 
+QRZ_EXPDATE="expdate" 
+QRZ_P_CALL="p_call" 
+QRZ_CLASS="class" 
+QRZ_CODES="codes" 
+QRZ_QSLMSGR="qslmgr" 
+QRZ_EMAIL="email" 
+QRZ_URL="url" 
+QRZ_U_VIEWS="u_views" 
+QRZ_BIO="bio" 
+QRZ_IMAGE="image" 
+QRZ_SERIAL="serial" 
+QRZ_MODDATE="moddate" 
+QRZ_MSA="MSA" 
+QRZ_AREACODE="AreaCode" 
+QRZ_TIMEZONE="TimeZone" 
+QRZ_GMTOFFSET="GMTOffset" 
+QRZ_DST="DST" 
+QRZ_EQSL="eqsl" 
+QRZ_MQSL="mqsl" 
+QRZ_CQZONE="cqzone" 
+QRZ_ITUZONE="ituzone" 
+QRZ_GEOLOC="geoloc" 
+QRZ_ATTN="attn" 
+QRZ_NICKNAME="nickname" 
+QRZ_FMT="name_fmt" 
+QRZ_BORN="born" 
+QRZ_ERROR="Error"
+
+QRZ_USERNAME = "QRZ_USERNAME"
+QRZ_PASSWORD = "QRZ_PASSWORD"
+
 # BANDS
 bands={'2190m':(135700,137800),
        '630m':(472000,479000),
@@ -222,3 +272,5 @@ bands={'2190m':(135700,137800),
        '1mm':(241000000000,250000000000),
        'submm':(300000000000,7500000000000)
        }
+
+modes = ['USB','LSB','CW','FT8','OLIVIA','PSK31','RTTY','SSTV','JS8CALL','DMR','C4FM','DSTAR','M17','PACKET']

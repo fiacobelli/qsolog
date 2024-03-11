@@ -41,6 +41,9 @@ def insert_qso(contact,logbook):
 def get_bands():
     return s.bands.keys()
 
+def get_modes():
+    return s.modes
+
 def get_freq_for_band(band):
     return s.bands[band][0]
 
