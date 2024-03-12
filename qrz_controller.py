@@ -32,14 +32,19 @@ def connect_callisgn_lookup():
 
 def get_xml_attrib(att,xmldoc):
     root = et.fromstring(xmldoc)
-    elements = root.findall(".")
+    return get_child_node_val(att,root)
+
+def get_child_node_val(att,root):
     target = root.findall('.//'+QRZ_XMLNS+att)
-    print('.//'+att,target,"\n",elements)
+    print(target)
     if len(target)>0:
         return target[0].text
     else:
-        return None
+        return ""
 
+def get_xml_error(xmldoc):
+    msg = get_xml_attrib("Error",xmldoc)
+    return msg
 
 def request_callsign(key,callsign):
     values={'callsign':callsign,
@@ -50,8 +55,30 @@ def request_callsign(key,callsign):
     resp = urllib.request.urlopen(QRZ_CALL_BASE_URL,data=data)
     return resp.read()
 
+def populate_data(xml_info):
+    root = et.fromstring(xml_info)
+    err = get_xml_error(xml_info)
+    if err:
+        QRZ_RESPONSE = {"Error":err}
+    else:
+        QRZ_RESPONSE = {s.NAME:get_child_node_val('fname',root)+" "+get_child_node_val('name',root),
+                        s.GRIDSQUARE:get_child_node_val('grid',root),
+                        s.ADDRESS:get_child_node_val('addr1',root)+","+get_child_node_val('addr2',root),
+                        s.STATE:get_child_node_val('state',root),
+                        s.COUNTRY:get_child_node_val('land',root),
+                        s.LAT:get_child_node_val('lat',root),
+                        s.LON:get_child_node_val('lon',root),
+                        'XML_RESPONSE':xml_info}
+    return QRZ_RESPONSE
+    
+def lookup_callsign(callsign,progress_signal):
+    progress_signal.emit()
+    qrz_key = connect_callisgn_lookup()
+    progress_signal.emit()
+    call_data = request_callsign(qrz_key,callsign)
+    progress_signal.emit()
+    return populate_data(call_data)
+
+
 if __name__=='__main__':
-    #print(connect_callisgn_lookup())
-    qrz_key = get_xml_attrib(QRZ_KEY,'<?xml version="1.0" encoding="utf-8" ?>\n<QRZDatabase version="1.36" xmlns="http://xmldata.qrz.com">\n<Session>\n<Key>b5e8cb910fd86164d5336ffccf4fca9f</Key>\n<Count>0</Count>\n<SubExp>Sun May 18 19:08:17 2025</SubExp>\n<GMTime>Sun Mar 10 21:58:27 2024</GMTime>\n<Remark>cpu: 0.014s</Remark>\n</Session>\n</QRZDatabase>')
-    print(qrz_key)
-    #print(request_callsign(qrz_key,'ke9fid'))
+    print(lookup_callsign("n0lsr"))

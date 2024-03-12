@@ -55,6 +55,29 @@ def get_band_for_freq(freq):
             band = b
     return band
 
+# QSO Configurations
+def read_configurations():
+    myconfig = open("qsolog.config","r").read()
+    qrzconfig = open("qrz.config","r").read()
+    lastconf = open("lastsettings.config","r").read()
+    return(config_to_dict(myconfig),config_to_dict(qrzconfig),config_to_dict(lastconf))
+
+
+def config_to_dict(config_str,delim=","):
+    # Convert CSV config to DICT.
+    lines = config_str.strip().split("\n")
+    d = {}
+    for line in lines:
+        if len(line)>1:
+            key,value = line.split(delim)
+            d[key]=value
+    return d
+
+def save_last_state(logbookname):
+    with open("lastsettings.conf","w") as file:
+        file.write(s.CURRENT_LOGBOOK+","+logbookname)
+    return True
+    
 
 ### QSO Conversion functions.
 def contact2ADI(contact :m.Contact):
