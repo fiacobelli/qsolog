@@ -19,8 +19,8 @@ def model_qsos_for_table(logbook):
 def load_logbook(filename):
     return m.LogBook.load_logbook(filename)
 
-def get_new_logbook(name,filename):
-    return m.LogBook(name,filename)
+def get_new_logbook(nm,filename):
+    return m.LogBook(name=nm,path=filename)
 
 def save_logbook(logbook):
     logbook.save_logbook()
@@ -60,7 +60,8 @@ def read_configurations():
     myconfig = open("qsolog.config","r").read()
     qrzconfig = open("qrz.config","r").read()
     lastconf = open("lastsettings.config","r").read()
-    return(config_to_dict(myconfig),config_to_dict(qrzconfig),config_to_dict(lastconf))
+    potaconf = open("pota.config").read()
+    return(config_to_dict(myconfig),config_to_dict(qrzconfig),config_to_dict(lastconf),config_to_dict(potaconf))
 
 
 def config_to_dict(config_str,delim=","):
@@ -74,13 +75,24 @@ def config_to_dict(config_str,delim=","):
     return d
 
 def save_last_state(logbookname):
-    with open("lastsettings.conf","w") as file:
+    with open("lastsettings.config","w") as file:
         file.write(s.CURRENT_LOGBOOK+","+logbookname)
     return True
     
 
-### QSO Conversion functions.
-def contact2ADI(contact :m.Contact):
-    tmp = ""
-    tmp+="<qsodate:8>"+str(contact.time)
+def logbook2adi(logbook,adifile):
+    adistr = m.Translator().logbook2adi(logbook)
+    with open(adifile,'w') as file:
+        file.write(adistr)
 
+def adifile2logbook(logbook,adifile):
+    adistr = open(adifile,'r').read()
+    logbook,status = m.Translator().adi2logbook(logbook,adistr)
+    return logbook
+
+if __name__=="__main__":
+    logb = m.LogBook.load_logbook("test.log")
+    print("Contacts",len(logb.contacts_by_id))
+    #adifile2logbook(logb,"test.adi")
+    #print(logb.contacts_by_id[-3:])
+    logbook2adi(logb,"test2.adi")

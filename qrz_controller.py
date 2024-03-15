@@ -71,14 +71,13 @@ def populate_data(xml_info):
                         'XML_RESPONSE':xml_info}
     return QRZ_RESPONSE
     
-def lookup_callsign(callsign,progress_signal):
-    progress_signal.emit()
-    qrz_key = connect_callisgn_lookup()
-    progress_signal.emit()
-    call_data = request_callsign(qrz_key,callsign)
-    progress_signal.emit()
-    return populate_data(call_data)
-
+def lookup_callsign(callsign):
+    try:
+        qrz_key = connect_callisgn_lookup()
+        call_data = request_callsign(qrz_key,callsign)
+        return populate_data(call_data)
+    except Exception as e:
+        return {'Error':'There was a problem retrieving data from QRZ:'+str(e)}
 
 if __name__=='__main__':
     print(lookup_callsign("n0lsr"))

@@ -1,0 +1,32 @@
+generated on 2024-03-14 for ke9fid 
+<adif_ver:5>3.0.5 
+<programid:6>qsolog 
+<programversion:3>1.0 
+<eoh>
+<operator:6>ke9fid 
+<qso_date:8>20240314 
+
+<time_on:4>1721 
+
+<band:3>20m 
+<mode:3>usb 
+<call:5>k1nem 
+<rst_rcvd:2>59 
+<rst_sent:2>59 
+<freq:11>14.07400mhz 
+<freq_rx:10>0.00000mhz 
+<state:2>nc 
+<lat:9>35.075227 
+<lon:10>-80.847640 
+<gridsquare:6>em95nb 
+<name:14>peter m gulish 
+<address:26>7314 ricewell rd,charlotte 
+<country:13>united states 
+<my_state:8>illinois 
+<my_grid:6>en62dc 
+<my_lat:9>42.104200 
+<my_lon:10>-87.708000 
+<my_pota_ref:4>none 
+<contacted_op:5>k1nem 
+<station_callsign:6>ke9fid 
+<eor>
