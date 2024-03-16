@@ -71,6 +71,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def setup_buttons(self):
         self.saveQSOButtonBox.accepted.connect(self.save_qso)
         self.saveQSOButtonBox.clicked.connect(self.discard_qso)
+        updatebtn = QPushButton("Update")
+        deletebtn = QPushButton("Delete")
+        cancelbtn = QPushButton("Cancel")
+        self.updateButtonBox.addButton(updatebtn,QDialogButtonBox.ButtonRole.AcceptRole)
+        self.updateButtonBox.addButton(deletebtn,QDialogButtonBox.ButtonRole.RejectRole)
+        self.updateButtonBox.addButton(cancelbtn,QDialogButtonBox.ButtonRole.HelpRole) #just to have a separate role.
+        
+
 
 
     def setup_menu(self):
@@ -177,7 +185,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                             self.satNameComboBox.currentText(),self.satModeLineEdit.text(), self.commentsPlainTextEdit.toPlainText(),
                             POTA_REF=self.theirParkIDLineEdit.text(),NOTES=self.theirParkNameLineEdit.text(),
                             RST_RCVD=self.RSTReceivedLineEdit.text(),RST_SENT=self.RSTSendLineEdit.text(),
-                            FREQ = self.frequencyDoubleSpinBox.text(), FREQ_RX=self.frequencyTXDoubleSpinBox.text(),
+                            FREQ = self.frequencyDoubleSpinBox.value(), FREQ_RX=self.frequencyTXDoubleSpinBox.value(),
                             STATE = state, LAT=lat, LON=lon,GRIDSQUARE=grid,NAME=self.qsoNameLineEdit.text(),
                             ADDRESS = self.qsoAddressLineEdit.text(), COUNTRY=self.qsoCountryLineEdit.text(),
                             CONTEST_ID = self.contestNameComboBox.currentText(), ARRL_SECT = self.arrlSectionLineEdit.text(),
@@ -190,6 +198,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.statusbar.showMessage("No Callsign to save")
         self.clear_qso_fields()
+        
 
 # Export/import functions
     def logbook2adi(self):

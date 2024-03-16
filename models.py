@@ -128,6 +128,7 @@ class LogBookTableModel(QtCore.QAbstractTableModel):
         self.logbook = logbook
         cont = self.logbook.contacts_by_id[0]
         self.columns = [k for k in cont.__dict__]
+        self.headers = [k.replace("_"," ").title() for k in self.columns]
         print(self.rowCount(0))
 
     
@@ -141,22 +142,62 @@ class LogBookTableModel(QtCore.QAbstractTableModel):
 
     def columnCount(self, index):
         return len(self.logbook.contacts_by_id[0].__dict__) 
+    
+    def headerData(self,section,orientation,role):
+        if role == Qt.ItemDataRole.DisplayRole:
+            if orientation == Qt.Orientation.Horizontal:
+                return self.headers[section]
+        elif role == Qt.ItemDataRole.FontRole:
+            f = QtGui.QFont("Helveica",10)
+            f.setBold(True)
+            return f
+        elif role == Qt.ItemDataRole.BackgroundRole:
+            return QtGui.QBrush(Qt.BrushStyle.Dense4Pattern) #QtGui.QColor('#053061')
 
     def data(self, index, role):
+        i = index.row()
+        j = index.column()
+        colname = self.columns[j].upper()
         if role == Qt.ItemDataRole.DisplayRole:
-            i = index.row()
-            j = index.column()
-            value = self.logbook.contacts_by_id[i].__dict__[self.columns[j]]
-            retval = value
-            if isinstance(value,datetime.date) and (self.columns[j]).upper()==s.QSO_DATE:
-                retval = value.strftime(r'%Y-%m-%d')
-            elif isinstance(value,datetime.time):
-                retval = value.strftime(r'%H:%M UTC')
-            elif isinstance(value,float):
-                retval = "%.6f" % value
-            else:
-                retval = str(value)
-            return retval
+            return self.format_data(i,j)
+        elif role == Qt.ItemDataRole.BackgroundRole and colname == s.MY_CALLSIGN:
+            return QtGui.QColor('blue')
+        elif role == Qt.ItemDataRole.ForegroundRole and colname == s.BAND:
+            value = self.logbook.contacts_by_id[i].__dict__[colname.lower()]
+            return self.format_band_color(value)
+        elif role == Qt.ItemDataRole.DecorationRole and colname == s.CALL:
+            return self.format_flag(self.logbook.contacts_by_id[i])
+        elif role == Qt.ItemDataRole.DecorationRole and colname == s.BAND:
+            value = self.logbook.contacts_by_id[i].__dict__[colname.lower()]
+            return self.format_band_color(value)
+
+        
+    def format_data(self,i,j):
+        value = self.logbook.contacts_by_id[i].__dict__[self.columns[j]]
+        retval = value
+        if isinstance(value,datetime.date) and (self.columns[j]).upper()==s.QSO_DATE:
+            retval = value.strftime(r'%Y-%m-%d')
+        elif isinstance(value,datetime.time):
+            retval = value.strftime(r'%H:%M UTC')
+        elif isinstance(value,float):
+            retval = "%.6f" % value
+        else:
+            retval = str(value)
+        return retval
+
+    def format_band_color(self,value):
+        if (value[:-1].isnumeric()):
+            num = int(value[:-1])%148
+            color = QtGui.QColor.colorNames()[num]
+            return QtGui.QColor(color)
+        else:
+            return QtGui.QColor('black')
+        
+    def format_flag(self,contact):
+        if s.COUNTRY in contact.other:
+            country = contact.other[s.COUNTRY]
+            if country in s.countries:
+                return QtGui.QIcon("./flags/"+s.countries[country].lower()+".png")
 
 
 class Translator:
@@ -172,18 +213,6 @@ class Translator:
 
 
     def contact2adi(self,contact):
-            #cid,my_callsign,their_callsign,date,time,band,mode,sat_name,sat_mode, comment
-            '''  POTA_REF=self.theirParkIDLineEdit.text(),NOTES=self.theirParkNameLineEdit.text(),
-                            RST_RCVD=self.RSTReceivedLineEdit.text(),RST_SENT=self.RSTSendLineEdit.text(),
-                            FREQ = self.frequencyDoubleSpinBox.text(), FREQ_RX=self.frequencyTXDoubleSpinBox.text(),
-                            STATE = state, LAT=lat, LON=lon,GRIDSQUARE=grid,NAME=self.qsoNameLineEdit.text(),
-                            ADDRESS = self.qsoAddressLineEdit.text(), COUNTRY=self.qsoCountryLineEdit.text(),
-                            CONTEST_ID = self.contestNameComboBox.text(), ARRL_SECT = self.arrlSectionLineEdit.text(),
-                            QSL_RCVD = self.serialRcvLineEdit.text(), QSL_SENT=self.serialSentSpinBox.text(),
-                            MY_STATE = self.myconfig[s.MY_STATE],MY_GRID=self.myconfig[s.MY_GRID],
-                            MY_LAT=self.myconfig[s.MY_LAT], MY_LON=self.myconfig[s.MY_LON],
-                            MY_POTA_REF = self.potaconf[s.MY_POTA_REF]'''
-
             adi = self.adi_element(s.OPERATOR,contact.my_callsign)
             adi += self.adi_element(s.QSO_DATE,contact.qso_date.strftime(r'%Y%m%d'))+"\n"
             adi += self.adi_element(s.TIME_ON,contact.qso_time.strftime(r'%H%M'))+"\n"

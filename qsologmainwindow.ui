@@ -59,11 +59,14 @@
       </rect>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="generalTabl">
       <attribute name="title">
        <string>General Info</string>
+      </attribute>
+      <attribute name="toolTip">
+       <string>General Information about your contact</string>
       </attribute>
       <widget class="QWidget" name="layoutWidget">
        <property name="geometry">
@@ -83,17 +86,25 @@
          </widget>
         </item>
         <item row="0" column="1">
-         <widget class="QLineEdit" name="qsoNameLineEdit"/>
+         <widget class="QLineEdit" name="qsoNameLineEdit">
+          <property name="toolTip">
+           <string>The QS's name</string>
+          </property>
+         </widget>
         </item>
         <item row="1" column="0">
          <widget class="QLabel" name="label_21">
           <property name="text">
-           <string>Grid</string>
+           <string>Grid square</string>
           </property>
          </widget>
         </item>
         <item row="1" column="1">
-         <widget class="QLineEdit" name="qsoGridLineEdit"/>
+         <widget class="QLineEdit" name="qsoGridLineEdit">
+          <property name="toolTip">
+           <string>The QSO's grid square</string>
+          </property>
+         </widget>
         </item>
         <item row="2" column="0">
          <widget class="QLabel" name="label_22">
@@ -103,7 +114,11 @@
          </widget>
         </item>
         <item row="2" column="1">
-         <widget class="QLineEdit" name="qsoAddressLineEdit"/>
+         <widget class="QLineEdit" name="qsoAddressLineEdit">
+          <property name="toolTip">
+           <string>QSO's address</string>
+          </property>
+         </widget>
         </item>
         <item row="3" column="0">
          <widget class="QLabel" name="label_23">
@@ -113,7 +128,11 @@
          </widget>
         </item>
         <item row="3" column="1">
-         <widget class="QLineEdit" name="qsoStateLineEdit"/>
+         <widget class="QLineEdit" name="qsoStateLineEdit">
+          <property name="toolTip">
+           <string>QSO's state or province</string>
+          </property>
+         </widget>
         </item>
         <item row="4" column="0">
          <widget class="QLabel" name="label_24">
@@ -130,13 +149,25 @@
          </widget>
         </item>
         <item row="6" column="1">
-         <widget class="QLineEdit" name="qsoCountryLineEdit"/>
+         <widget class="QLineEdit" name="qsoCountryLineEdit">
+          <property name="toolTip">
+           <string>The country of this QSO</string>
+          </property>
+         </widget>
         </item>
         <item row="4" column="1">
-         <widget class="QLineEdit" name="latLineEdit"/>
+         <widget class="QLineEdit" name="latLineEdit">
+          <property name="toolTip">
+           <string>QSO's latitude in decimal</string>
+          </property>
+         </widget>
         </item>
         <item row="5" column="1">
-         <widget class="QLineEdit" name="lonLineEdit"/>
+         <widget class="QLineEdit" name="lonLineEdit">
+          <property name="toolTip">
+           <string>QSO's longitude in decimal</string>
+          </property>
+         </widget>
         </item>
         <item row="5" column="0">
          <widget class="QLabel" name="label_28">
@@ -165,6 +196,9 @@
       <attribute name="title">
        <string>POTA</string>
       </attribute>
+      <attribute name="toolTip">
+       <string>Fields that help hunting POTA activators</string>
+      </attribute>
       <widget class="QWidget" name="layoutWidget">
        <property name="geometry">
         <rect>
@@ -183,7 +217,11 @@
          </widget>
         </item>
         <item row="0" column="1">
-         <widget class="QLineEdit" name="theirParkIDLineEdit"/>
+         <widget class="QLineEdit" name="theirParkIDLineEdit">
+          <property name="toolTip">
+           <string>Their park ID</string>
+          </property>
+         </widget>
         </item>
         <item row="1" column="0">
          <widget class="QLabel" name="label_16">
@@ -193,7 +231,11 @@
          </widget>
         </item>
         <item row="1" column="1">
-         <widget class="QLineEdit" name="theirParkNameLineEdit"/>
+         <widget class="QLineEdit" name="theirParkNameLineEdit">
+          <property name="toolTip">
+           <string>Their park name</string>
+          </property>
+         </widget>
         </item>
         <item row="2" column="0">
          <widget class="QLabel" name="label_17">
@@ -203,7 +245,11 @@
          </widget>
         </item>
         <item row="2" column="1">
-         <widget class="QLineEdit" name="potaStateLineEdit"/>
+         <widget class="QLineEdit" name="potaStateLineEdit">
+          <property name="toolTip">
+           <string>Their park state if different than the QSO's state</string>
+          </property>
+         </widget>
         </item>
         <item row="3" column="0">
          <widget class="QLabel" name="label_18">
@@ -213,7 +259,11 @@
          </widget>
         </item>
         <item row="3" column="1">
-         <widget class="QLineEdit" name="potaGridLineEdit"/>
+         <widget class="QLineEdit" name="potaGridLineEdit">
+          <property name="toolTip">
+           <string>Park's gridsquare</string>
+          </property>
+         </widget>
         </item>
         <item row="4" column="0">
          <widget class="QLabel" name="label_26">
@@ -223,7 +273,11 @@
          </widget>
         </item>
         <item row="4" column="1">
-         <widget class="QLineEdit" name="potaLatLineEdit"/>
+         <widget class="QLineEdit" name="potaLatLineEdit">
+          <property name="toolTip">
+           <string>Park's latitude</string>
+          </property>
+         </widget>
         </item>
         <item row="5" column="0">
          <widget class="QLabel" name="label_27">
@@ -233,14 +287,21 @@
          </widget>
         </item>
         <item row="5" column="1">
-         <widget class="QLineEdit" name="potaLonLineEdit"/>
+         <widget class="QLineEdit" name="potaLonLineEdit">
+          <property name="toolTip">
+           <string>Park's longitude</string>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>
      </widget>
      <widget class="QWidget" name="splitTab">
       <attribute name="title">
-       <string>Split Op</string>
+       <string>DXing/Split Op</string>
+      </attribute>
+      <attribute name="toolTip">
+       <string>Fields for split operation and DX contacts</string>
       </attribute>
       <widget class="QLabel" name="label_19">
        <property name="geometry">
@@ -288,6 +349,9 @@
       <attribute name="title">
        <string>Satellite</string>
       </attribute>
+      <attribute name="toolTip">
+       <string>Fields for satellite operation</string>
+      </attribute>
       <widget class="QWidget" name="layoutWidget">
        <property name="geometry">
         <rect>
@@ -328,6 +392,9 @@
      <widget class="QWidget" name="contestTab">
       <attribute name="title">
        <string>Contest</string>
+      </attribute>
+      <attribute name="toolTip">
+       <string>Fields useful for contests</string>
       </attribute>
       <widget class="QWidget" name="layoutWidget">
        <property name="geometry">
@@ -409,6 +476,12 @@
       </property>
      </widget>
      <widget class="QComboBox" name="modeComboBox">
+      <property name="toolTip">
+       <string>Enter the mode of operation</string>
+      </property>
+      <property name="statusTip">
+       <string/>
+      </property>
       <property name="editable">
        <bool>true</bool>
       </property>
@@ -468,6 +541,9 @@
       </property>
      </widget>
      <widget class="QDateEdit" name="dateEdit">
+      <property name="toolTip">
+       <string>Enter this qso date</string>
+      </property>
       <property name="calendarPopup">
        <bool>true</bool>
       </property>
@@ -477,7 +553,11 @@
        <string>Time</string>
       </property>
      </widget>
-     <widget class="QTimeEdit" name="timeEdit"/>
+     <widget class="QTimeEdit" name="timeEdit">
+      <property name="toolTip">
+       <string>Enter this qso start time</string>
+      </property>
+     </widget>
     </widget>
     <widget class="QDialogButtonBox" name="saveQSOButtonBox">
      <property name="geometry">
@@ -504,6 +584,9 @@
        <height>71</height>
       </rect>
      </property>
+     <property name="toolTip">
+      <string>Any comments?</string>
+     </property>
     </widget>
     <widget class="QLabel" name="label_5">
      <property name="geometry">
@@ -518,12 +601,25 @@
       <string>Comment</string>
      </property>
     </widget>
+    <widget class="QDialogButtonBox" name="updateButtonBox">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>250</y>
+       <width>156</width>
+       <height>24</height>
+      </rect>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::NoButton</set>
+     </property>
+    </widget>
     <widget class="QSplitter" name="splitter_4">
      <property name="geometry">
       <rect>
        <x>10</x>
        <y>70</y>
-       <width>272</width>
+       <width>381</width>
        <height>22</height>
       </rect>
      </property>
@@ -542,8 +638,11 @@
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
+      <property name="toolTip">
+       <string>Select this QSO's band</string>
+      </property>
       <property name="statusTip">
-       <string>Select the band of this QSO</string>
+       <string/>
       </property>
       <property name="editable">
        <bool>true</bool>
@@ -562,7 +661,7 @@
        </sizepolicy>
       </property>
       <property name="toolTip">
-       <string>No decimals</string>
+       <string>Enter the receive frequency in MHz (e.g. 7.125)</string>
       </property>
       <property name="prefix">
        <string/>
@@ -575,6 +674,16 @@
       </property>
       <property name="maximum">
        <double>7500000.990000000223517</double>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_33">
+      <property name="text">
+       <string>Power</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="powerLineEdit">
+      <property name="toolTip">
+       <string>Enter the power in Watts</string>
       </property>
      </widget>
     </widget>
@@ -792,19 +901,38 @@
   <tabstop>dateEdit</tabstop>
   <tabstop>timeEdit</tabstop>
   <tabstop>bandComboBox</tabstop>
-  <tabstop>modeComboBox</tabstop>
   <tabstop>frequencyDoubleSpinBox</tabstop>
+  <tabstop>powerLineEdit</tabstop>
+  <tabstop>modeComboBox</tabstop>
   <tabstop>RSTSendLineEdit</tabstop>
   <tabstop>RSTReceivedLineEdit</tabstop>
-  <tabstop>specialFieldsTabWidget</tabstop>
-  <tabstop>theirParkIDLineEdit</tabstop>
+  <tabstop>commentsPlainTextEdit</tabstop>
+  <tabstop>qsoNameLineEdit</tabstop>
+  <tabstop>qsoGridLineEdit</tabstop>
+  <tabstop>qsoAddressLineEdit</tabstop>
+  <tabstop>qsoStateLineEdit</tabstop>
+  <tabstop>latLineEdit</tabstop>
+  <tabstop>lonLineEdit</tabstop>
+  <tabstop>qsoCountryLineEdit</tabstop>
   <tabstop>theirParkNameLineEdit</tabstop>
   <tabstop>potaStateLineEdit</tabstop>
   <tabstop>potaGridLineEdit</tabstop>
-  <tabstop>commentsPlainTextEdit</tabstop>
+  <tabstop>theirParkIDLineEdit</tabstop>
+  <tabstop>satModeLineEdit</tabstop>
   <tabstop>searchLineEdit</tabstop>
   <tabstop>satNameComboBox</tabstop>
-  <tabstop>satModeLineEdit</tabstop>
+  <tabstop>lookupPushButton</tabstop>
+  <tabstop>potaLatLineEdit</tabstop>
+  <tabstop>potaLonLineEdit</tabstop>
+  <tabstop>frequencyTXDoubleSpinBox</tabstop>
+  <tabstop>contestNameComboBox</tabstop>
+  <tabstop>arrlSectionLineEdit</tabstop>
+  <tabstop>serialRcvLineEdit</tabstop>
+  <tabstop>serialSentSpinBox</tabstop>
+  <tabstop>logListTableView</tabstop>
+  <tabstop>localDateTimeEdit</tabstop>
+  <tabstop>zuluDateTimeEdit</tabstop>
+  <tabstop>specialFieldsTabWidget</tabstop>
  </tabstops>
  <resources/>
  <connections/>
