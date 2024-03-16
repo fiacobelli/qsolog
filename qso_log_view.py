@@ -9,6 +9,7 @@ from config_dialog import Form
 import models as m
 import qso_controller as qsoc
 import qrz_controller as qrz
+import pota_controller as pc
 import external_strings as s
 
 class Worker(QObject):
@@ -95,6 +96,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def setup_other_events(self):
         self.theirCallLineEdit.editingFinished.connect(self.fill_callsign_details)
+        self.theirParkIDLineEdit.editingFinished.connect(self.fill_pota_data)
         
 
     # Actions that happen when you move around.
@@ -110,6 +112,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.thread.start()
         self.update_qso_clock()
         
+    def fill_pota_data(self):
+        parkid = self.theirParkIDLineEdit.text()
+        data = pc.get_pota_info(parkid)
+        self.theirParkNameLineEdit.setText(data["name"])
+        self.potaGridLineEdit.setText(data['grid4'])
+        self.potaLatLineEdit.setText(str(data['latitude']))
+        self.potaLonLineEdit.setText(str(data['longitude']))
+        self.potaStateLineEdit.setText(data['locationDesc'])
+
     
     def update_qso_clock(self):
         self.dateEdit.setDate(QDateTime.currentDateTimeUtc().date())

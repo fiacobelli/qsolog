@@ -206,10 +206,10 @@ class Translator:
 
 
     def adi_element(self,key,value,eol="\n"):
-        if value is None or len(value)<1:
+        if value is None or len(str(value))<1:
             return ""
         else:
-            return f"<{key}:{len(value)}>{value} {eol}"
+            return f"<{key}:{len(str(value))}>{str(value)} {eol}"
 
 
     def contact2adi(self,contact):

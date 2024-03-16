@@ -1,1 +1,34 @@
-<adif_ver:5>3.0.5<programid:6>qsolog<programversion:3>1.0<eoh><operator:6>ke9fid<qso_date:8>20240313<time_on:4>2316<band:3>40m<mode:3>usb<call:5>n0lsr<rst_rcvd:2>59<rst_sent:2>59<freq:10>0.00000mhz<freq_rx:10>0.00000mhz<state:2>il<lat:9>42.101003<lon:10>-87.894071<gridsquare:6>en62bc<name:8>udo koch<address:28>2007 e seneca ln,mt prospect<country:13>united states<my_state:8>illinois<my_grid:6>en62dc<my_lat:9>42.104200<my_lon:10>-87.708000<my_pota_ref:4>none<eor>
+generated on 2024-03-16 for ke9fid 
+<adif_ver:5>3.0.5 
+<programid:6>qsolog 
+<programversion:3>1.0 
+<eoh>
+<operator:6>ke9fid 
+<qso_date:8>20240316 
+
+<time_on:4>2235 
+
+<band:3>20m 
+<mode:3>usb 
+<call:5>w1dwd 
+<comment:21>apenitas se escuchaba 
+<pota_ref:6>k-4972 
+<rst_rcvd:2>57 
+<rst_sent:2>52 
+<freq:6>14.268 
+<freq_rx:3>0.0 
+<state:2>nh 
+<lat:9>43.015830 
+<lon:10>-71.451100 
+<gridsquare:6>fn43ga 
+<name:15>andrew e demers 
+<address:31>497 hooksett rd #127,manchester 
+<country:13>united states 
+<my_state:8>illinois 
+<my_grid:6>en62dc 
+<my_lat:9>42.104200 
+<my_lon:10>-87.708000 
+<my_pota_ref:4>none 
+<contacted_op:5>w1dwd 
+<station_callsign:6>ke9fid 
+<eor>

@@ -295,6 +295,16 @@
         </item>
        </layout>
       </widget>
+      <widget class="QListView" name="potaSpotsListView">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>180</y>
+         <width>281</width>
+         <height>61</height>
+        </rect>
+       </property>
+      </widget>
      </widget>
      <widget class="QWidget" name="splitTab">
       <attribute name="title">
