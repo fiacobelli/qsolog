@@ -55,6 +55,16 @@ def get_band_for_freq(freq):
             band = b
     return band
 
+# Searching functions
+def previous_qsos_with(callsign,logbook):
+    return len(logbook.contacts[callsign]) if callsign in logbook.contacts else 0
+
+def get_matching_rows(logbook,txt):
+    # This will initially just search callsigns
+    idxs = [i for i,c in enumerate(logbook.contacts_by_id) if txt in c.call]
+    return idxs
+
+
 # QSO Configurations
 def read_configurations():
     myconfig = open("qsolog.config","r").read()
@@ -62,7 +72,6 @@ def read_configurations():
     lastconf = open("lastsettings.config","r").read()
     potaconf = open("pota.config").read()
     return(config_to_dict(myconfig),config_to_dict(qrzconfig),config_to_dict(lastconf),config_to_dict(potaconf))
-
 
 def config_to_dict(config_str,delim=","):
     # Convert CSV config to DICT.

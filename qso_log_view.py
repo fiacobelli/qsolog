@@ -2,7 +2,7 @@ import sys, datetime
 from PyQt6 import uic
 from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
-from PyQt6.QtCore import QTimer, QDateTime, QDate, QTime, QObject, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QTimer, QDateTime, QDate, QTime, QObject, QRunnable, QThreadPool, QThread, pyqtSignal
 
 from qsomain import Ui_MainWindow
 from config_dialog import Form
@@ -12,22 +12,39 @@ import qrz_controller as qrz
 import pota_controller as pc
 import external_strings as s
 
-class Worker(QObject):
+class Worker(QRunnable):
+
     finished = pyqtSignal(dict)
-     
-    def setup(self,callsign):
-        self.callsign = callsign
+    
+    def __init__(self,fun,info=None):
+       super(Worker, self).__init__()
+       self.info = info
+       self.fn = fun
+       self.data = {}
+       self.signals = WorkerSignals()
 
     def run(self):
         # Task that needs multithreading
-        qrz_data = qrz.lookup_callsign(self.callsign)
-        self.finished.emit(qrz_data)
+        try:
+            self.data = self.fn(self.info)
+        except:
+            exctype, value = sys.exc_info()[:2]
+            data = {'Error':str(exctype)+" - "+ str(value)}
+            self.signals.error.emit(self.data)
+        
+        self.signals.result.emit(self.data)
+        self.signals.finished.emit()
 
+class WorkerSignals(QObject):
+    finished = pyqtSignal()
+    error = pyqtSignal(dict)
+    result = pyqtSignal(dict)
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, *args, obj=None, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
+        self.threadpool = QThreadPool()
         self.setupUi(self)
         self.setup_configurations()
         self.setup_basics()
@@ -97,24 +114,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def setup_other_events(self):
         self.theirCallLineEdit.editingFinished.connect(self.fill_callsign_details)
         self.theirParkIDLineEdit.editingFinished.connect(self.fill_pota_data)
+        self.searchLineEdit.textChanged.connect(self.search_qsos)
         
 
     # Actions that happen when you move around.
     def fill_callsign_details(self):
-        self.thread = QThread(self)
-        self.worker = Worker()
-        self.worker.setup(self.theirCallLineEdit.text())
-        self.worker.finished.connect(self.update_callsign_data)
-        self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.worker.finished.connect(self.thread.deleteLater)
-        self.thread.start()
+        worker = Worker(qrz.lookup_callsign,self.theirCallLineEdit.text())
+        worker.signals.result.connect(self.update_callsign_data)
+        self.threadpool.start(worker)
         self.update_qso_clock()
+        self.search_qsos(self.theirCallLineEdit.text())
         
+
     def fill_pota_data(self):
-        parkid = self.theirParkIDLineEdit.text()
-        data = pc.get_pota_info(parkid)
+        worker = Worker(pc.get_pota_info,self.theirParkIDLineEdit.text())
+        worker.signals.result.connect(self.update_pota_data)
+        self.threadpool.start(worker)
+
+    def update_pota_data(self,data):
         self.theirParkNameLineEdit.setText(data["name"])
         self.potaGridLineEdit.setText(data['grid4'])
         self.potaLatLineEdit.setText(str(data['latitude']))
@@ -155,7 +172,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.lonLineEdit.setText(qrz_data[s.LON])
         return True
         
-    
+    def search_qsos(self,txt):
+        self.logListTableView.clearSelection()
+        if not txt:
+            # Empty string, don't search.
+            return
+
+        matching_items = qsoc.get_matching_rows(self.logbook,txt)
+        if matching_items:
+            # we have found something
+            for item in range(len(self.logbook.contacts_by_id)):
+                self.logListTableView.hideRow(item)
+            for item in matching_items:
+                self.logListTableView.showRow(item)
     
 #### Open Config dialogs.
     def open_config(self,config):
@@ -181,6 +210,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def new_logbook(self):
         filename = QFileDialog.getSaveFileName(self, 'New logbook','./', 'Log files (*.log)')[0]
         self.logbook = qsoc.get_new_logbook(self.my_callsign,filename)
+        self.lbmodel = m.LogBookTableModel(self.logbook)
+        self.logListTableView.setModel(self.lbmodel)
         return True
 
     def discard_qso(self,btn):
@@ -263,8 +294,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.theirParkNameLineEdit.clear()
         self.RSTReceivedLineEdit.clear()
         self.RSTSendLineEdit.clear()
-        self.frequencyDoubleSpinBox.clear()
-        self.frequencyTXDoubleSpinBox.clear()
+        self.frequencyDoubleSpinBox.setValue(0.0)
+        self.frequencyTXDoubleSpinBox.setValue(0.0)
         for i in range(self.generalInfoFormLayout.rowCount()):
             li: QLineEdit = self.generalInfoFormLayout.itemAt(i,QFormLayout.ItemRole.FieldRole).widget()
             li.clear()

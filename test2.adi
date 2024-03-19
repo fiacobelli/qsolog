@@ -1,63 +1,33 @@
-generated on 2024-03-16 for ke9fid 
+Generated on 2024-03-18 for KE9FID 
 <adif_ver:5>3.0.5 
-<programid:6>qsolog 
+<programid:6>QsoLog 
 <programversion:3>1.0 
-<eoh>
-<operator:6>ke9fid 
-<qso_date:8>20240316 
+<EOH>
+<operator:6>KE9FID 
+<qso_date:8>20240318 
 
-<time_on:4>2235 
-
-<band:3>20m 
-<mode:3>usb 
-<call:5>w1dwd 
-<comment:21>apenitas se escuchaba 
-<pota_ref:6>k-4972 
-<rst_rcvd:2>57 
-<rst_sent:2>52 
-<freq:6>14.268 
-<freq_rx:3>0.0 
-<state:2>nh 
-<lat:9>43.015830 
-<lon:10>-71.451100 
-<gridsquare:6>fn43ga 
-<name:15>andrew e demers 
-<address:31>497 hooksett rd #127,manchester 
-<country:13>united states 
-<my_state:8>illinois 
-<my_grid:6>en62dc 
-<my_lat:9>42.104200 
-<my_lon:10>-87.708000 
-<my_pota_ref:4>none 
-<contacted_op:5>w1dwd 
-<station_callsign:6>ke9fid 
-<eor>
-<operator:6>ke9fid 
-<qso_date:8>20240316 
-
-<time_on:4>2241 
+<time_on:4>1452 
 
 <band:3>10m 
-<mode:3>usb 
-<call:5>w7rta 
-<comment:9>mucho qrm 
-<pota_ref:6>k-9980 
-<rst_rcvd:2>55 
-<rst_sent:2>52 
-<freq:6>28.415 
+<mode:3>USB 
+<call:5>NP4DX 
+<comment:11>Courtesy 59 
+<rst_rcvd:2>59 
+<rst_sent:2>59 
+<freq:6>28.435 
 <freq_rx:3>0.0 
-<state:2>or 
-<lat:9>45.444794 
-<lon:11>-122.545580 
-<gridsquare:6>cn85rk 
-<name:17>charles m bottita 
-<address:32>10933 se hilltop ct,happy valley 
-<country:13>united states 
-<my_state:8>illinois 
-<my_grid:6>en62dc 
+<state:2>PR 
+<lat:9>18.292036 
+<lon:10>-66.719091 
+<gridsquare:6>FK68ph 
+<name:22> ATLANTIC CONTEST CLUB 
+<address:20>HC5 Box 26192,Utuado 
+<country:11>Puerto Rico 
+<my_state:8>ILLINOIS 
+<my_grid:6>EN62dc 
 <my_lat:9>42.104200 
 <my_lon:10>-87.708000 
-<my_pota_ref:4>none 
-<contacted_op:5>w7rta 
-<station_callsign:6>ke9fid 
+<my_pota_ref:4>None 
+<contacted_op:5>NP4DX 
+<station_callsign:6>KE9FID 
 <eor>

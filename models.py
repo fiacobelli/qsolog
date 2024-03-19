@@ -50,6 +50,12 @@ class Contact:
         self.other[field]=value
 
 
+    def as_dict(self):
+        d = self.__dict__
+        for k in d['other']:
+            d[k] = d['other'][k]
+        return d
+
     @classmethod
     def from_dictionarystr(cls,dictstr):
         # Just a dictionary with the right fields. Dates and times must be date and time objects.
@@ -126,9 +132,7 @@ class LogBookTableModel(QtCore.QAbstractTableModel):
     def __init__(self,logbook):
         super(LogBookTableModel,self).__init__()
         self.logbook = logbook
-        cont = self.logbook.contacts_by_id[0]
-        self.columns = [k for k in cont.__dict__]
-        self.headers = [k.replace("_"," ").title() for k in self.columns]
+            
         print(self.rowCount(0))
 
     
@@ -141,7 +145,13 @@ class LogBookTableModel(QtCore.QAbstractTableModel):
         return len(self.logbook.contacts_by_id)
 
     def columnCount(self, index):
-        return len(self.logbook.contacts_by_id[0].__dict__) 
+        cols=0
+        if len(self.logbook.contacts_by_id)>0:
+            cols = len(self.logbook.contacts_by_id[0].as_dict())
+            cont = self.logbook.contacts_by_id[0]
+            self.columns = [k for k in cont.as_dict()]
+            self.headers = [k.replace("_"," ").title() for k in self.columns]
+        return cols
     
     def headerData(self,section,orientation,role):
         if role == Qt.ItemDataRole.DisplayRole:
@@ -163,17 +173,17 @@ class LogBookTableModel(QtCore.QAbstractTableModel):
         elif role == Qt.ItemDataRole.BackgroundRole and colname == s.MY_CALLSIGN:
             return QtGui.QColor('blue')
         elif role == Qt.ItemDataRole.ForegroundRole and colname == s.BAND:
-            value = self.logbook.contacts_by_id[i].__dict__[colname.lower()]
+            value = self.logbook.contacts_by_id[i].as_dict()[colname.lower()]
             return self.format_band_color(value)
         elif role == Qt.ItemDataRole.DecorationRole and colname == s.CALL:
             return self.format_flag(self.logbook.contacts_by_id[i])
         elif role == Qt.ItemDataRole.DecorationRole and colname == s.BAND:
-            value = self.logbook.contacts_by_id[i].__dict__[colname.lower()]
+            value = self.logbook.contacts_by_id[i].as_dict()[colname.lower()]
             return self.format_band_color(value)
 
         
     def format_data(self,i,j):
-        value = self.logbook.contacts_by_id[i].__dict__[self.columns[j]]
+        value = self.logbook.contacts_by_id[i].as_dict()[self.columns[j]]
         retval = value
         if isinstance(value,datetime.date) and (self.columns[j]).upper()==s.QSO_DATE:
             retval = value.strftime(r'%Y-%m-%d')
@@ -209,7 +219,7 @@ class Translator:
         if value is None or len(str(value))<1:
             return ""
         else:
-            return f"<{key}:{len(str(value))}>{str(value)} {eol}"
+            return f"<{key.lower()}:{len(str(value))}>{str(value)} {eol}"
 
 
     def contact2adi(self,contact):
@@ -228,19 +238,19 @@ class Translator:
             adi += self.adi_element(s.CONTACTED_OP,contact.call)
             adi += self.adi_element(s.STATION_CALLSIGN,contact.my_callsign)
 
-            adi += f"<{s.EOR}>\n"
+            adi += f"<{s.EOR.lower()}>\n"
             return adi
             
     def logbook2adi(self,logbook):
         adi = f"Generated on {datetime.datetime.today().strftime(r'%Y-%m-%d')} for {logbook.name} \n"
-        adi += self.adi_element(s.ADIF_VER,"3.0.5")
-        adi += self.adi_element(s.PROGRAMID,"QsoLog")
-        adi += self.adi_element(s.PROGRAMVERSION,"1.0")
+        adi += self.adi_element(s.ADIF_VER.lower(),"3.0.5")
+        adi += self.adi_element(s.PROGRAMID.lower(),"QsoLog")
+        adi += self.adi_element(s.PROGRAMVERSION.lower(),"1.0")
         adi += f"<{s.EOH}>\n"
         for c in logbook.contacts_by_id:
             if not c.is_emplty():
                 adi += self.contact2adi(c)
-        return adi.lower()
+        return adi
 
     def adi2logbook(self,logbook,adi):
         header,elements = adi.split("<eoh>") if '<eoh>' in adi else adi.split("<EOH>")
