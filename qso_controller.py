@@ -17,7 +17,14 @@ def model_qsos_for_table(logbook):
 
 
 def load_logbook(filename):
-    return m.LogBook.load_logbook(filename)
+    logbook = None
+    try:
+        logbook =  m.LogBook.load_logbook(filename)
+        logbook.path = filename
+    except:
+        print("Problem Loading the logbook")
+        logbook = m.LogBook("new","./temp~log.log")
+    return logbook
 
 def get_new_logbook(nm,filename):
     return m.LogBook(name=nm,path=filename)

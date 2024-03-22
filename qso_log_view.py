@@ -136,7 +136,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.potaGridLineEdit.setText(data['grid4'])
         self.potaLatLineEdit.setText(str(data['latitude']))
         self.potaLonLineEdit.setText(str(data['longitude']))
-        self.potaStateLineEdit.setText(data['locationDesc'])
+        self.potaStateLineEdit.setText(data['locationDesc'][-2:])
 
     
     def update_qso_clock(self):
