@@ -90,9 +90,10 @@ def config_to_dict(config_str,delim=","):
             d[key]=value
     return d
 
-def save_last_state(logbookname):
+def save_last_state(mainapp):
     with open("lastsettings.config","w") as file:
-        file.write(s.CURRENT_LOGBOOK+","+logbookname)
+        file.write(s.CURRENT_LOGBOOK+","+mainapp.logbook.path+"\n")
+        file.write(s.CURRENT_MODE+","+str(mainapp.specialFieldsTabWidget.currentIndex()))
     return True
     
 

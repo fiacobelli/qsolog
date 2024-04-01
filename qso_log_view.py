@@ -60,6 +60,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.statusbar.showMessage("Logging QSO DE "+self.my_callsign+" on "+self.lastlog[s.CURRENT_LOGBOOK])
         self.logbook_change = False
         self.open_previous_log()
+    
         
         
     def open_previous_log(self):
@@ -81,6 +82,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.zuluDateTimeEdit.setDateTime(QDateTime.currentDateTime())
         self.theirCallLineEdit.textChanged.connect(self.always_upper)
         self.bandComboBox.addItems(qsoc.get_bands())
+        self.bandComboBox.setCurrentIndex(0)
         self.modeComboBox.addItems(qsoc.get_modes())
         self.bandComboBox.currentIndexChanged.connect(self.update_frequency)
         self.frequencyDoubleSpinBox.valueChanged.connect(self.update_band)
@@ -145,8 +147,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         
     def update_frequency(self):
         low_freq,high_freq = s.bands[self.bandComboBox.currentText()]
-        self.frequencyDoubleSpinBox.setValue(low_freq/1000000)
-        self.frequencyTXDoubleSpinBox.setValue(low_freq/1000000)
+        if self.frequencyDoubleSpinBox.value()<low_freq or self.frequencyDoubleSpinBox.value()>high_freq:
+            self.frequencyDoubleSpinBox.setValue(low_freq/1000000)
+            self.frequencyTXDoubleSpinBox.setValue(low_freq/1000000)
 
     def update_band(self):
         band = ""
@@ -155,8 +158,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             low,high = s.bands[b]
             if freq>=low and freq<=high:
                 band = b
-        self.bandComboBox.setCurrentText(band)
-
+                self.bandComboBox.setCurrentText(b)
+        #self.bandComboBox.setCurrentIndex(self.bandComboBox.findText(band))
+        
         return None
 
     def update_callsign_data(self,qrz_data):
@@ -231,7 +235,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                             STATE = state, LAT=lat, LON=lon,GRIDSQUARE=grid,NAME=self.qsoNameLineEdit.text(),
                             ADDRESS = self.qsoAddressLineEdit.text(), COUNTRY=self.qsoCountryLineEdit.text(),
                             CONTEST_ID = self.contestNameComboBox.currentText(), ARRL_SECT = self.arrlSectionLineEdit.text(),
-                            QSL_RCVD = self.serialRcvLineEdit.text(), QSL_SENT=self.serialSentSpinBox.text(),
+                            SRX = self.serialRcvLineEdit.text(), STX=self.serialSentSpinBox.text(),
                             MY_STATE = self.myconfig[s.MY_STATE],MY_GRID=self.myconfig[s.MY_GRID],
                             MY_LAT=self.myconfig[s.MY_LAT], MY_LON=self.myconfig[s.MY_LON],
                             MY_POTA_REF = self.potaconf[s.MY_POTA_REF]
@@ -239,7 +243,30 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.update_model()
         else:
             self.statusbar.showMessage("No Callsign to save")
-        self.clear_qso_fields()
+        self.set_qso_fields()
+
+    def set_qso_fields(self):
+        #In a contest...
+        if self.specialFieldsTabWidget.currentIndex() == 4:
+            self.statusbar.showMessage("Saved in CONTEST mode")
+            cntst_name = self.contestNameComboBox.currentText()
+            cntst_serial =self.serialSentSpinBox.value()
+            rst_rcvd = self.RSTReceivedLineEdit.text()
+            rst_snt = self.RSTSendLineEdit.text()
+            band = self.bandComboBox.currentIndex()
+            freq = self.frequencyDoubleSpinBox.value()
+            power = self.powerLineEdit.text()
+            arrlsect = self.arrlSectionLineEdit.text()
+            mode = self.modeComboBox.currentText()
+            self.clear_qso_fields()
+            self.contestNameComboBox.setCurrentText(cntst_name)
+            self.serialSentSpinBox.setValue(cntst_serial+1)
+            self.RSTReceivedLineEdit.setText(rst_rcvd)
+            self.RSTSendLineEdit.setText(rst_snt)
+            self.bandComboBox.setCurrentIndex(band)
+            self.powerLineEdit.setText(power)
+            self.arrlSectionLineEdit.setText(arrlsect)
+            self.modeComboBox.setCurrentText(mode)
         
 
 # Export/import functions
@@ -263,7 +290,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         lon = self.lonLineEdit.text()
         # This checks that IF your QSO was POTA Hunt or SOTA hunt, location is that of the park or summit
         if len(self.potaStateLineEdit.text())>2:
-            state = self.potaStateLineEdit.text()
+            state = self.potaStateLineEdit.text()[-2:]
         if len(self.potaGridLineEdit.text())>2:
             grid = self.potaGridLineEdit.text()
         if len(self.potaLatLineEdit.text())>2:
@@ -294,17 +321,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.theirParkNameLineEdit.clear()
         self.RSTReceivedLineEdit.clear()
         self.RSTSendLineEdit.clear()
-        self.frequencyDoubleSpinBox.setValue(0.0)
-        self.frequencyTXDoubleSpinBox.setValue(0.0)
+        self.frequencyDoubleSpinBox.setValue(7.0)
+        self.frequencyTXDoubleSpinBox.setValue(7.0)
         for i in range(self.generalInfoFormLayout.rowCount()):
             li: QLineEdit = self.generalInfoFormLayout.itemAt(i,QFormLayout.ItemRole.FieldRole).widget()
             li.clear()
+        for i in range(self.formLayout.rowCount()):
+            li: QLineEdit = self.formLayout.itemAt(i,QFormLayout.ItemRole.FieldRole).widget()
+            li.clear()
+        for i in range(self.formLayout_2.rowCount()):
+            li: QLineEdit = self.formLayout_2.itemAt(i,QFormLayout.ItemRole.FieldRole).widget()
+            li.clear()
+        for i in range(self.formLayout_4.rowCount()):
+            li: QLineEdit = self.formLayout_4.itemAt(i,QFormLayout.ItemRole.FieldRole).widget()
+            li.clear()
+        
 
 # Functions related to the timer and updating stuff at intervals.
     def update_all(self):
         self.localDateTimeEdit.setDateTime(QDateTime.currentDateTime())
         self.zuluDateTimeEdit.setDateTime(QDateTime.currentDateTime())
-        stsmsg = self.statusbar.currentMessage().title()
+        stsmsg = self.statusbar.currentMessage()
         self.statusbar.clearMessage()
         self.save_logbook()
         self.statusbar.showMessage(stsmsg)
@@ -318,7 +355,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 # App control
     def closeEvent(self,event):
         self.save_logbook()
-        qsoc.save_last_state(self.logbook.path)
+        qsoc.save_last_state(self)
         event.accept()
 
 # Always uppercase callsign.
