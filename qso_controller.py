@@ -27,7 +27,7 @@ def save_logbook(logbook):
 
 def insert_contact(logbook,my_callsign,their_callsign,date,time,band,mode,sat,prop_mode_sat, comments,**kwargs):
     cid = logbook.get_next_id()
-    qso = m.Contact(cid,my_callsign,their_callsign,date,time,band,mode,sat,prop_mode_sat,comments)
+    qso = m.Contact(cid,my_callsign,their_callsign,date,time,band,mode,sat_name=sat,sat_mode=prop_mode_sat,comment=comments)
     for key,value in kwargs.items():
         qso.add_field(key,value)
     insert_qso(qso,logbook)

@@ -11,7 +11,7 @@ from PyQt6.QtCore import Qt
 
 
 class Contact:
-    def __init__(self, cid,my_callsign,their_callsign,date,time,band,mode,sat_name,sat_mode, comment):
+    def __init__(self, cid,my_callsign,their_callsign,date,time,band,mode,comment=None,sat_name=None,sat_mode=None):
         self.id = cid
         self.my_callsign = my_callsign
         self.call = their_callsign
@@ -66,14 +66,9 @@ class Contact:
                 dictstr[k]="" # Default to empty.
         c = cls(dictstr.pop(s.QSO_ID), dictstr.pop(s.MY_CALLSIGN), dictstr.pop(s.CALL), 
                 dictstr.pop(s.QSO_DATE),dictstr.pop(s.TIME_ON), dictstr.pop(s.BAND), 
-                dictstr.pop(s.MODE), dictstr.pop(s.SAT_NAME), dictstr.pop(s.SAT_MODE),dictstr.pop(s.COMMENT))
+                dictstr.pop(s.MODE), sat_name = dictstr.pop(s.SAT_NAME), sat_mode=dictstr.pop(s.SAT_MODE),comment=dictstr.pop(s.COMMENT))
         c.other = dictstr
         return c
-
-    @classmethod
-    def from_adi(cls,adi):
-        return None
-
 
 
 
