@@ -17,7 +17,14 @@ def model_qsos_for_table(logbook):
 
 
 def load_logbook(filename):
-    return m.LogBook.load_logbook(filename)
+    logbook = None
+    try:
+        logbook =  m.LogBook.load_logbook(filename)
+        logbook.path = filename
+    except:
+        print("Problem Loading the logbook")
+        logbook = m.LogBook("new","./temp~log.log")
+    return logbook
 
 def get_new_logbook(nm,filename):
     return m.LogBook(name=nm,path=filename)
@@ -83,9 +90,10 @@ def config_to_dict(config_str,delim=","):
             d[key]=value
     return d
 
-def save_last_state(logbookname):
+def save_last_state(mainapp):
     with open("lastsettings.config","w") as file:
-        file.write(s.CURRENT_LOGBOOK+","+logbookname)
+        file.write(s.CURRENT_LOGBOOK+","+mainapp.logbook.path+"\n")
+        file.write(s.CURRENT_MODE+","+str(mainapp.specialFieldsTabWidget.currentIndex()))
     return True
     
 

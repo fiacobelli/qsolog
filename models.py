@@ -23,6 +23,8 @@ class Contact:
         self.sat_mode = sat_mode # propagation mode for satellites.
         self.comment = comment
         self.other = {}
+        #print(self.qso_date,type(self.qso_date),self.qso_time, type(self.qso_time))
+
     
     def is_emplty(self):
         return len(self.call)<1
@@ -35,6 +37,9 @@ class Contact:
     
 
     def matches(self, contact):
+        if type(self.qso_date) is not datetime.date:
+            print("Bad contact:",self.__dict__)
+            return False
         dt = datetime.datetime.combine(self.qso_date,self.qso_time)
         dt2 = datetime.datetime.combine(contact.qso_date,contact.qso_time)
         return self.my_callsign == contact.call and \
@@ -80,8 +85,20 @@ class LogBook:
         self.contacts = {} #callsign:[contacts]
         self.contacts_by_id=[]
         
+    def contact_exists(self,contact):
+        for c in self.contacts_by_id:
+            #print(c.call,contact.call,c.matches(contact))
+            if c.matches(contact):
+                #print("Contact\n",contact.__dict__,"\nIn the Logbook Already")
+                return True
+        return False
     
     def add_contact(self,contact):
+        # Is this contact an existing one?
+        if self.contact_exists(contact):
+            print("Contact already in the logbook",contact.call)
+            return None
+        print("Contact Added",contact.call)
         if contact.call in self.contacts:
             self.contacts[contact.call].append(contact)
         else:
@@ -92,10 +109,17 @@ class LogBook:
         self.contacts[contact.call].remove(contact)
         return self.contacts_by_id.remove(contact)
 
-    def update_contact(self, contact):
-        idx = self.contacts[contact.call].index(contact)
-        self.contacts[contact.call][idx]=contact
+    def update_contact(self, contact,**kwargs):
+        return None
     
+    def find_contact_index(clist,contact):
+        idx = 0
+        while contact.cid != clist[idx].cid:
+            idx+=1
+        if idx<len(clist):
+            return idx
+        return None
+
     def get_contact_by_id(self,cid):
         idx = 0
         while cid != self.contacs_by_id[idx].cid:
@@ -252,7 +276,6 @@ class Translator:
         contacts = elements.split("<eor>") if '<eor>' in elements else elements.split("<EOR>")
         i = 0
         for qso in contacts:
-            print(f"Processing contact {i}")
             cont_dict = {}
             fields = qso.split("<")
             for el in fields[1:]:
@@ -266,6 +289,7 @@ class Translator:
                 else:
                     cont_dict[tag]=value
             cont_dict[s.QSO_ID] = logbook.get_next_id()
+            print("importing contact",i,cont_dict)
             logbook.add_contact(Contact.from_dictionarystr(cont_dict))
             i+=1
         return logbook,i
