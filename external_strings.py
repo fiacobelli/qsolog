@@ -1,3 +1,4 @@
+QRZ_LOOKUP="https://www.qrz.com/db/"
 # ADI/ADIF/ ADX Record strings
 EOR ="EOR"
 EOH = "EOH"

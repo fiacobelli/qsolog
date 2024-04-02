@@ -3,6 +3,7 @@ from PyQt6.QtGui import *
 import models as m
 import datetime
 import external_strings as s
+import utils as u
 
 
 def model_qsos_for_table(logbook):
@@ -106,6 +107,20 @@ def adifile2logbook(logbook,adifile):
     adistr = open(adifile,'r').read()
     logbook,status = m.Translator().adi2logbook(logbook,adistr)
     return logbook
+
+def distance_from_me(contact,lat,long,unit="km"):
+    lat1 = contact.get_attr(s.LAT)
+    lon1 = contact.get_attr(s.LON)
+    if len(lat1)>1 and len(lon2)>1:
+        return u.distance_on_earth(lat1,lon1,lat,long,unit)
+    else:
+        return ""
+    
+def distance_from_me(lat1,lon1,lat2,lon2,unit="km"):
+    if len(lat1)>1 and len(lon2)>1 and len(lat2)>1 and len(lon2)>1:
+        return u.distance_on_earth(float(lat1),float(lon1),float(lat2),float(lon2),unit)
+    else:
+        return ""
 
 if __name__=="__main__":
     logb = m.LogBook.load_logbook("test.log")

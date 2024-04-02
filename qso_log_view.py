@@ -3,7 +3,7 @@ from PyQt6 import uic
 from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from PyQt6.QtCore import Qt, QTimer, QDateTime, QDate, QTime, QObject, QRunnable, QThreadPool, QThread, pyqtSignal
-
+import webbrowser
 from qsomain import Ui_MainWindow
 from config_dialog import Form
 import models as m
@@ -72,7 +72,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         return True
 
     def setup_basics(self):
-        # Dates
+        # Dates, combo boxes filling up, etc.
         self.dateEdit.setDate(QDateTime.currentDateTimeUtc().date())
         self.timeEdit.setTime(QDateTime.currentDateTimeUtc().time())
         self.timer = QTimer(self)
@@ -110,6 +110,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.updateButtonBox.addButton(updatebtn,QDialogButtonBox.ButtonRole.AcceptRole)
         self.updateButtonBox.addButton(deletebtn,QDialogButtonBox.ButtonRole.RejectRole)
         self.updateButtonBox.addButton(cancelbtn,QDialogButtonBox.ButtonRole.HelpRole) #just to have a separate role.
+        self.lookupPushButton.clicked.connect(self.openqrz)
         
 
 
@@ -173,8 +174,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 band = b
                 self.bandComboBox.setCurrentText(b)
         #self.bandComboBox.setCurrentIndex(self.bandComboBox.findText(band))
-        
         return None
+    
+    def openqrz(self):
+        webbrowser.open(s.QRZ_LOOKUP+self.theirCallLineEdit.text())
 
     def update_callsign_data(self,qrz_data):
         if 'Error' in qrz_data:
@@ -187,6 +190,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.qsoGridLineEdit.setText(qrz_data[s.GRIDSQUARE])
         self.latLineEdit.setText(qrz_data[s.LAT])
         self.lonLineEdit.setText(qrz_data[s.LON])
+        self.statusbar.showMessage(qsoc.distance_from_me(qrz_data[s.LAT],qrz_data[s.LON],self.myconfig[s.MY_LAT],self.myconfig[s.MY_LON]))
         return True
         
     def search_qsos(self,txt):
@@ -205,12 +209,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     
 #### Open Config dialogs.
     def open_config(self,config):
+        dlg = Form(self)
         if config=='mine':
-            dlg = Form(self)
             dlg.make_window("./qsolog.config")
-            dlg.setWindowTitle("My Information")
-            dlg.setParent(self)
-            dlg.exec()
+            dlg.setWindowTitle("My Information")   
+        elif config=='qrz':
+            dlg.make_window("./qrz.config")
+            dlg.setWindowTitle("My QRZ Information") 
+        dlg.setParent(self)
+        dlg.exec()
+
 
 
 

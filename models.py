@@ -180,7 +180,7 @@ class LogBookTableModel(QtCore.QAbstractTableModel):
             cont = self.logbook.contacts_by_id[0]
             self.columns = [k for k in cont.as_dict()]
             self.headers = [k.replace("_"," ").title() for k in self.columns]
-        return cols
+        return cols # add one for the distance.
     
     def headerData(self,section,orientation,role):
         if role == Qt.ItemDataRole.DisplayRole:
