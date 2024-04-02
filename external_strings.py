@@ -547,3 +547,6 @@ countries = {
 "Åland Islands":"AX"
     
 }
+
+QSO='QSO:'
+ARRL_SECTIONS = []

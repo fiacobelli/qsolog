@@ -86,6 +86,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.modeComboBox.addItems(qsoc.get_modes())
         self.bandComboBox.currentIndexChanged.connect(self.update_frequency)
         self.frequencyDoubleSpinBox.valueChanged.connect(self.update_band)
+        self.logListTableView.doubleClicked.connect(self.load_contact)
+
+    def load_contact(self):
+        areyousure = QMessageBox(self)
+        areyousure.setWindowTitle("WARNING!")
+        areyousure.setText("You are about to overwrite any contact you are working on already. Do you want to proceed?")
+        areyousure.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        areyousure.setIcon(QMessageBox.Icon.Warning)
+        option = areyousure.exec()
+        if (option == QMessageBox.StandardButton.Yes):
+            self.load_qso_fields(self.logListTableView.selectedIndexes()[0].row())
+        print(self.logListTableView.selectedIndexes()[0].row())
+    
 
 
     def setup_buttons(self):
@@ -243,9 +256,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.update_model()
         else:
             self.statusbar.showMessage("No Callsign to save")
-        self.set_qso_fields()
+        self.qso_fields_after_save()
 
-    def set_qso_fields(self):
+    def qso_fields_after_save(self):
         #In a contest...
         if self.specialFieldsTabWidget.currentIndex() == 4:
             self.statusbar.showMessage("Saved in CONTEST mode")
@@ -268,6 +281,41 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.arrlSectionLineEdit.setText(arrlsect)
             self.modeComboBox.setCurrentText(mode)
         
+    def load_qso_fields(self,idx):
+        contact: m.Contact = self.logbook.contacts_by_id[idx]
+        self.theirCallLineEdit.setText(contact.get_attr('call'))
+        self.dateEdit.setDate(contact.get_attr('qso_date'))
+        self.timeEdit.setTime(contact.get_attr('qso_time')), 
+        self.bandComboBox.setCurrentText(contact.get_attr('band'))
+        self.modeComboBox.setCurrentText(contact.get_attr('mode'))
+        self.satNameComboBox.setCurrentText(contact.get_attr('sat_name'))
+        self.satModeLineEdit.setText(contact.get_attr('sat_mode')) 
+        self.commentsPlainTextEdit.setPlainText(contact.get_attr('comment'))
+        self.theirParkIDLineEdit.setText(contact.get_attr(s.POTA_REF))
+        self.theirParkNameLineEdit.setText(contact.get_attr(s.NOTES))
+        self.RSTReceivedLineEdit.setText(contact.get_attr(s.RST_RCVD))
+        self.RSTSendLineEdit.setText(contact.get_attr(s.RST_SENT))
+        self.frequencyDoubleSpinBox.setValue(contact.get_attr(s.FREQ))
+        self.frequencyTXDoubleSpinBox.setValue(contact.get_attr(s.FREQ_RX))
+        self.qsoStateLineEdit.setText(contact.get_attr(s.STATE))
+        self.potaStateLineEdit.setText(contact.get_attr(s.STATE))
+        self.latLineEdit.setText(contact.get_attr(s.LAT))
+        self.lonLineEdit.setText(contact.get_attr(s.LON))
+        self.potaLatLineEdit.setText(contact.get_attr(s.LAT))
+        self.potaLonLineEdit.setText(contact.get_attr(s.LON))
+        self.qsoGridLineEdit.setText(contact.get_attr(s.GRIDSQUARE))
+        self.potaGridLineEdit.setText(contact.get_attr(s.GRIDSQUARE))
+        self.qsoNameLineEdit.setText(contact.get_attr(s.NAME))
+        self.qsoAddressLineEdit.setText(contact.get_attr(s.ADDRESS))
+        self.qsoCountryLineEdit.setText(contact.get_attr(s.COUNTRY))
+        self.contestNameComboBox.setCurrentText(contact.get_attr(s.CONTEST_ID))
+        self.arrlSectionLineEdit.setText(contact.get_attr(s.ARRL_SECT))
+        self.serialRcvLineEdit.setText(contact.get_attr(s.SRX))
+        self.serialSentSpinBox.setValue(0 if contact.get_attr(s.STX)=='' else contact.get_attr(s.STX))
+        # Ver como deal con esto. self.myconfig[s.MY_STATE],MY_GRID=self.myconfig[s.MY_GRID],
+        #                    MY_LAT=self.myconfig[s.MY_LAT], MY_LON=self.myconfig[s.MY_LON],
+        #                    MY_POTA_REF = self.potaconf[s.MY_POTA_REF]
+    
 
 # Export/import functions
     def logbook2adi(self):

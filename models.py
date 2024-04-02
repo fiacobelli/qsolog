@@ -60,7 +60,15 @@ class Contact:
         for k in d['other']:
             d[k] = d['other'][k]
         return d
-
+    
+    def get_attr(self,name):
+        d = self.as_dict()
+        if name in d:
+            return d[name]
+        else:
+            return ""
+        
+        
     @classmethod
     def from_dictionarystr(cls,dictstr):
         # Just a dictionary with the right fields. Dates and times must be date and time objects.
@@ -154,6 +162,8 @@ class LogBookTableModel(QtCore.QAbstractTableModel):
             
         print(self.rowCount(0))
 
+    def flags(self, index):
+        return Qt.ItemFlag.ItemIsSelectable|Qt.ItemFlag.ItemIsEnabled
     
     def update(self, dataIn):
         print('Updating Model')
@@ -293,8 +303,30 @@ class Translator:
             logbook.add_contact(Contact.from_dictionarystr(cont_dict))
             i+=1
         return logbook,i
-        
+    
+    def get_cabrillo_mode(self,mode):
+        if mode[-2:]=='SB':
+            return "PH"
+        if mode == 'RTTY':
+            return "RY"
+        if mode != 'CW' and mode != 'FM':
+            return "DG"
+        return mode
 
+
+    def contact2cabrillo(self,contact,tx_fields=[s.STX],rx_fields=[s.SRX]):
+        freq = contact.other[s.FREQ]
+        mode = self.get_cabrillo_mode(contact.mode)
+        date = contact.qso_date.strftime(r'%Y-%m-%d')
+        time = contact.qso_time.strftime(r'%H%M')
+        call = contact.my_callsign
+        rst = contact.other[s.RST_SENT]
+        exchng_s = [contact.other[key] for key in tx_fields].join(" ")
+        their_call = contact.their_callsign
+        rstr = contact.other[s.RST_RCVD]
+        exchng_r = [contact.other[key] for key in rx_fields].join(" ")
+        t = "1" # This should be variable.
+        return f"{s.QSO} {freq:<5} {mode} {date} {time} {call:<13} {rst:<3} {exchng_s:<6} {their_call:<13} {rstr:<3} {exchng_r:<6} {t}"
 
 
 
