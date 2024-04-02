@@ -266,6 +266,30 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.statusbar.showMessage("No Callsign to save")
         self.qso_fields_after_save()
 
+
+    def update_qso(self,contact):
+        print("Updating")
+        if (self.logbook and len(self.theirCallLineEdit.text())>1):
+            state,grid,lat,lon = self.get_location()
+            qsoc.update_contact(contact,self.my_callsign,self.theirCallLineEdit.text(),self.dateEdit.date().toPyDate(),
+                            self.timeEdit.time().toPyTime(), self.bandComboBox.currentText(),self.modeComboBox.currentText(),
+                            self.satNameComboBox.currentText(),self.satModeLineEdit.text(), self.commentsPlainTextEdit.toPlainText(),
+                            POTA_REF=self.theirParkIDLineEdit.text(),NOTES=self.theirParkNameLineEdit.text(),
+                            RST_RCVD=self.RSTReceivedLineEdit.text(),RST_SENT=self.RSTSendLineEdit.text(),
+                            FREQ = self.frequencyDoubleSpinBox.value(), FREQ_RX=self.frequencyTXDoubleSpinBox.value(),
+                            STATE = state, LAT=lat, LON=lon,GRIDSQUARE=grid,NAME=self.qsoNameLineEdit.text(),
+                            ADDRESS = self.qsoAddressLineEdit.text(), COUNTRY=self.qsoCountryLineEdit.text(),
+                            CONTEST_ID = self.contestNameComboBox.currentText(), ARRL_SECT = self.arrlSectionLineEdit.text(),
+                            SRX = self.serialRcvLineEdit.text(), STX=self.serialSentSpinBox.text(),
+                            MY_STATE = self.myconfig[s.MY_STATE],MY_GRID=self.myconfig[s.MY_GRID],
+                            MY_LAT=self.myconfig[s.MY_LAT], MY_LON=self.myconfig[s.MY_LON],
+                            MY_POTA_REF = self.potaconf[s.MY_POTA_REF]
+                            )
+            self.update_model()
+        else:
+            self.statusbar.showMessage("No Callsign to save")
+        self.qso_fields_after_save()
+
     def qso_fields_after_save(self):
         #In a contest...
         if self.specialFieldsTabWidget.currentIndex() == 4:

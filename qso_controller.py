@@ -40,6 +40,20 @@ def insert_contact(logbook,my_callsign,their_callsign,date,time,band,mode,sat,pr
         qso.add_field(key,value)
     insert_qso(qso,logbook)
     
+def update_contact(contact,my_callsign,their_callsign,date,time,band,mode,sat,prop_mode_sat, comments,**kwargs):
+    contact.my_callsign =  my_callsign
+    contact.call = their_callsign
+    contact.date = date
+    contact.time = time
+    contact.band = band
+    contact.mode = mode
+    contact.sat_name = sat
+    contact.sat_mode = prop_mode_sat
+    contact.comment = comments
+    for key,value in kwargs.items():
+        contact.add_field(key,value)
+    
+    
 
 def insert_qso(contact,logbook):
     logbook.add_contact(contact)
