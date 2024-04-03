@@ -26,9 +26,17 @@ def xml_dict(node, path="", dic =None):
     return dic
 
 def distance_on_earth(lat1,long1,lat2,long2,unit='km'):
+    # lats and longs need to be converted to radians.
+    lat1 = lat1*math.pi/180
+    lat2 = lat2*math.pi/180
+    long1 = long1*math.pi/180
+    long2 = long2*math.pi/180
     #d = 2R × sin⁻¹(√[sin²((θ₂ - θ₁)/2) + cosθ₁ × cosθ₂ × sin²((φ₂ - φ₁)/2)])
-    R = 6371 #earth's radius in km
-    d = 2*R*math.asin(math.sqrt((lat1-lat2)/2) + math.cos(lat1)*math.cos(lat2)*math.asin((long1-long2)/2))
+    a = 6378 #earth's radius in km at equator
+    lats = math.sin((lat2-lat1)/2)**2
+    lons = math.sin((long2-long1)/2)**2
+    coses = math.cos(lat1)*math.cos(lat2)
+    d = 2*a*math.asin(math.sqrt(lats+coses*lons))
     if unit=='mi':
         return d/1.6
     else:

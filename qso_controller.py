@@ -108,7 +108,9 @@ def config_to_dict(config_str,delim=","):
 def save_last_state(mainapp):
     with open("lastsettings.config","w") as file:
         file.write(s.CURRENT_LOGBOOK+","+mainapp.logbook.path+"\n")
-        file.write(s.CURRENT_MODE+","+str(mainapp.specialFieldsTabWidget.currentIndex()))
+        file.write(s.CURRENT_MODE+","+str(mainapp.specialFieldsTabWidget.currentIndex())+"\n")
+        file.write(s.UI_HEIGHT+","+str(mainapp.size().height())+"\n")
+        file.write(s.UI_WIDTH+","+str(mainapp.size().width()))
     return True
     
 
@@ -131,14 +133,16 @@ def distance_from_me(contact,lat,long,unit="km"):
         return ""
     
 def distance_from_me(lat1,lon1,lat2,lon2,unit="km"):
+    print(f"from {lat1}, {lon1} to {lat2}, {lon2}")
     if len(lat1)>1 and len(lon2)>1 and len(lat2)>1 and len(lon2)>1:
         return u.distance_on_earth(float(lat1),float(lon1),float(lat2),float(lon2),unit)
     else:
         return ""
 
 if __name__=="__main__":
-    logb = m.LogBook.load_logbook("test.log")
-    print("Contacts",len(logb.contacts_by_id))
+    #logb = m.LogBook.load_logbook("test.log")
+    #print("Contacts",len(logb.contacts_by_id))
     #adifile2logbook(logb,"test.adi")
     #print(logb.contacts_by_id[-3:])
-    logbook2adi(logb,"test2.adi")
+    #logbook2adi(logb,"test2.adi")
+    print(distance_from_me('42.101003', '-87.894071','42.104200', '-87.708000'))

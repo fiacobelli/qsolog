@@ -551,3 +551,6 @@ countries = {
 
 QSO='QSO:'
 ARRL_SECTIONS = []
+
+UI_WIDTH = 'UI_WIDTH'
+UI_HEIGHT = 'UI_HEIGHT'

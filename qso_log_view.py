@@ -51,25 +51,35 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setup_menu()
         self.setup_buttons()
         self.setup_other_events()
+        
 
 
     def setup_configurations(self):
-        self.myconfig,self.qrzconfig,self.lastlog,self.potaconf = qsoc.read_configurations()
+        self.myconfig,self.qrzconfig,self.lastconf,self.potaconf = qsoc.read_configurations()
         self.my_callsign = self.myconfig[s.MY_CALLSIGN]
         self.groupBox.setTitle("DE "+self.my_callsign)
-        self.statusbar.showMessage("Logging QSO DE "+self.my_callsign+" on "+self.lastlog[s.CURRENT_LOGBOOK])
+        self.statusbar.showMessage("Logging QSO DE "+self.my_callsign+" on "+self.lastconf[s.CURRENT_LOGBOOK])
         self.logbook_change = False
-        self.open_previous_log()
+        self.restore_previous_log()
+        self.restore_previous_settings()
     
         
         
-    def open_previous_log(self):
-        if len(self.lastlog[s.CURRENT_LOGBOOK])<3:
+    def restore_previous_log(self):
+        if len(self.lastconf[s.CURRENT_LOGBOOK])<3:
             return False
-        self.logbook = qsoc.load_logbook(self.lastlog[s.CURRENT_LOGBOOK])
+        self.logbook = qsoc.load_logbook(self.lastconf[s.CURRENT_LOGBOOK])
         self.lbmodel = m.LogBookTableModel(self.logbook)
         self.logListTableView.setModel(self.lbmodel)
         return True
+
+    def restore_previous_settings(self):
+        tabopen = int(self.lastconf[s.CURRENT_MODE])
+        self.specialFieldsTabWidget.setCurrentIndex(tabopen)
+        width = int(self.lastconf[s.UI_WIDTH])
+        height = int(self.lastconf[s.UI_HEIGHT])
+        self.resize(width,height)
+
 
     def setup_basics(self):
         # Dates, combo boxes filling up, etc.
@@ -190,7 +200,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.qsoGridLineEdit.setText(qrz_data[s.GRIDSQUARE])
         self.latLineEdit.setText(qrz_data[s.LAT])
         self.lonLineEdit.setText(qrz_data[s.LON])
-        self.statusbar.showMessage(qsoc.distance_from_me(qrz_data[s.LAT],qrz_data[s.LON],self.myconfig[s.MY_LAT],self.myconfig[s.MY_LON]))
+        self.statusbar.showMessage(f"contact is {qsoc.distance_from_me(qrz_data[s.LAT],qrz_data[s.LON],self.myconfig[s.MY_LAT],self.myconfig[s.MY_LON])} km. away")
         return True
         
     def search_qsos(self,txt):
@@ -437,6 +447,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.save_logbook()
         qsoc.save_last_state(self)
         event.accept()
+        
 
 # Always uppercase callsign.
     def always_upper(self,comp):
