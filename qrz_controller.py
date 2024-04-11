@@ -4,6 +4,7 @@ import urllib.request
 import urllib.response
 import xml.etree.ElementTree as et
 import utils as u
+import ssl
 
 QRZ_CALL_BASE_URL = "https://xmldata.qrz.com/xml/current/?"
 QRZ_AGENT="qsolog1.0"
@@ -24,10 +25,11 @@ def connect_callisgn_lookup():
     values={'username':QRZ_VALUES[s.QRZ_USERNAME],
     'password':QRZ_VALUES[s.QRZ_PASSWORD],
     'agent':QRZ_AGENT}
+    qrzcontext = ssl.SSLContext()
     data = urllib.parse.urlencode(values)
     data = data.encode('ascii') # data should be bytes
     req = urllib.request.Request(QRZ_CALL_BASE_URL, data)
-    resp = urllib.request.urlopen(QRZ_CALL_BASE_URL,data=data)
+    resp = urllib.request.urlopen(QRZ_CALL_BASE_URL,data=data, context=qrzcontext)
     return get_xml_attrib('Key',resp.read())
 
 def get_xml_attrib(att,xmldoc):

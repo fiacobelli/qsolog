@@ -23,6 +23,7 @@ class Contact:
         self.sat_mode = sat_mode # propagation mode for satellites.
         self.comment = comment
         self.other = {}
+        self.must_have_keys = [s.QSO_ID,s.MY_CALLSIGN,s.CALL,s.QSO_DATE,s.TIME_ON,s.BAND,s.MODE,s.SAT_MODE,s.SAT_NAME,s.COMMENT]
         #print(self.qso_date,type(self.qso_date),self.qso_time, type(self.qso_time))
 
     
@@ -73,8 +74,8 @@ class Contact:
     def from_dictionarystr(cls,dictstr):
         # Just a dictionary with the right fields. Dates and times must be date and time objects.
         # Normalize the dictionary. It must have:
-        must_have_keys = [s.QSO_ID,s.MY_CALLSIGN,s.CALL,s.QSO_DATE,s.TIME_ON,s.BAND,s.MODE,s.SAT_MODE,s.SAT_NAME,s.COMMENT]
-        for k in must_have_keys:
+        
+        for k in self.must_have_keys:
             if k not in dictstr:
                 dictstr[k]="" # Default to empty.
         c = cls(dictstr.pop(s.QSO_ID), dictstr.pop(s.MY_CALLSIGN), dictstr.pop(s.CALL), 
@@ -82,6 +83,23 @@ class Contact:
                 dictstr.pop(s.MODE), sat_name = dictstr.pop(s.SAT_NAME), sat_mode=dictstr.pop(s.SAT_MODE),comment=dictstr.pop(s.COMMENT))
         c.other = dictstr
         return c
+
+    def update_contact(self,**kwargs):
+        self.my_callsign = kwargs[s.MY_CALLSIGN]
+        self.call = kwargs[s.CALL]
+        self.qso_date = kwargs[s.QSO_DATE]
+        self.qso_time = kwargs[s.TIME_ON]
+        self.band = kwargs[s.BAND]
+        self.mode = kwargs[s.MODE]
+        self.sat_name = kwargs[s.SAT_NAME] # Satellite
+        self.sat_mode = kwargs[s.SAT_MODE] # propagation mode for satellites.
+        self.comment = kwargs[s.COMMENT]
+        for k,v in kwargs.items():
+            if k not in self.must_have_keys:
+                self.other[k]=v
+        return True
+            
+
 
 
 
@@ -118,7 +136,12 @@ class LogBook:
         return self.contacts_by_id.remove(contact)
 
     def update_contact(self, contact,**kwargs):
-        return None
+        idx = self.find_contact_index(self.contacts_by_id,contact)
+        if idx:
+            c = self.contacts_by_id[idx]
+            c.update(**kwargs)
+            return True
+        return False
     
     def find_contact_index(clist,contact):
         idx = 0
