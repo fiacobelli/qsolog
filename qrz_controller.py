@@ -25,11 +25,11 @@ def connect_callisgn_lookup():
     values={'username':QRZ_VALUES[s.QRZ_USERNAME],
     'password':QRZ_VALUES[s.QRZ_PASSWORD],
     'agent':QRZ_AGENT}
-    qrzcontext = ssl.SSLContext()
+    ssl._create_default_https_context = ssl._create_unverified_context
     data = urllib.parse.urlencode(values)
     data = data.encode('ascii') # data should be bytes
     req = urllib.request.Request(QRZ_CALL_BASE_URL, data)
-    resp = urllib.request.urlopen(QRZ_CALL_BASE_URL,data=data, context=qrzcontext)
+    resp = urllib.request.urlopen(QRZ_CALL_BASE_URL,data=data)
     return get_xml_attrib('Key',resp.read())
 
 def get_xml_attrib(att,xmldoc):

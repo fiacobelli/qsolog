@@ -63,7 +63,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.restore_previous_log()
         self.restore_previous_settings()
     
-        
+
         
     def restore_previous_log(self):
         if len(self.lastconf[s.CURRENT_LOGBOOK])<3:
@@ -72,6 +72,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.lbmodel = m.LogBookTableModel(self.logbook)
         self.logListTableView.setModel(self.lbmodel)
         return True
+
 
     def restore_previous_settings(self):
         tabopen = int(self.lastconf[s.CURRENT_MODE])
@@ -97,6 +98,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.bandComboBox.currentIndexChanged.connect(self.update_frequency)
         self.frequencyDoubleSpinBox.valueChanged.connect(self.update_band)
         self.logListTableView.doubleClicked.connect(self.load_contact)
+        self.current_contact = None
 
     def load_contact(self):
         areyousure = QMessageBox(self)
@@ -107,9 +109,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         option = areyousure.exec()
         if (option == QMessageBox.StandardButton.Yes):
             self.load_qso_fields(self.logListTableView.selectedIndexes()[0].row())
+            self.updateButtonBox.setVisible(True)
+            self.saveQSOButtonBox.setVisible(False)
         print(self.logListTableView.selectedIndexes()[0].row())
     
-
 
     def setup_buttons(self):
         self.saveQSOButtonBox.accepted.connect(self.save_qso)
@@ -120,6 +123,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.updateButtonBox.addButton(updatebtn,QDialogButtonBox.ButtonRole.AcceptRole)
         self.updateButtonBox.addButton(deletebtn,QDialogButtonBox.ButtonRole.RejectRole)
         self.updateButtonBox.addButton(cancelbtn,QDialogButtonBox.ButtonRole.HelpRole) #just to have a separate role.
+        self.updateButtonBox.accepted.connect(self.update_qso)
+        self.updateButtonBox.rejected.connect(self.delete_qso)
+        self.updateButtonBox.helpRequested.connect(self.discard_qso)
+        self.updateButtonBox.setVisible(False)
         self.lookupPushButton.clicked.connect(self.openqrz)
         
 
@@ -250,8 +257,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         return True
 
     def discard_qso(self,btn):
-        if btn.text()=="Discard":
+        if btn.text()=="Discard" or btn.text()=="Cancel":
             self.clear_qso_fields()
+            self.updateButtonBox.setVisible(False)
+            self.saveQSOButtonBox.setVisible(True)
 
     def save_qso(self):
         print("Save")
@@ -277,8 +286,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.qso_fields_after_save()
 
 
-    def update_qso(self,contact):
+    def update_qso(self):
         print("Updating")
+        if self.current_contact:
+            contact = self.current_contact
+        else:
+            self.statusbar.showMessage("No QSO to update")
+            return True
+        
         if (self.logbook and len(self.theirCallLineEdit.text())>1):
             state,grid,lat,lon = self.get_location()
             qsoc.update_contact(contact,self.my_callsign,self.theirCallLineEdit.text(),self.dateEdit.date().toPyDate(),
@@ -290,18 +305,33 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                             STATE = state, LAT=lat, LON=lon,GRIDSQUARE=grid,NAME=self.qsoNameLineEdit.text(),
                             ADDRESS = self.qsoAddressLineEdit.text(), COUNTRY=self.qsoCountryLineEdit.text(),
                             CONTEST_ID = self.contestNameComboBox.currentText(), ARRL_SECT = self.arrlSectionLineEdit.text(),
-                            SRX = self.serialRcvLineEdit.text(), STX=self.serialSentSpinBox.text(),
+                            SRX = self.serialRcvLineEdit.text(), STX=self.serialSentSpinBox.value(),
                             MY_STATE = self.myconfig[s.MY_STATE],MY_GRID=self.myconfig[s.MY_GRID],
                             MY_LAT=self.myconfig[s.MY_LAT], MY_LON=self.myconfig[s.MY_LON],
                             MY_POTA_REF = self.potaconf[s.MY_POTA_REF]
                             )
             self.update_model()
+            self.statusbar.showMessage("QSO Updated")
+            self.current_contact = None
         else:
-            self.statusbar.showMessage("No Callsign to save")
+            self.statusbar.showMessage("No Callsign to update")
         self.qso_fields_after_save()
+
+    def delete_qso(self):
+        if self.current_contact:
+            contact = self.current_contact
+        else:
+            self.statusbar.showMessage("No QSO to delete")
+            return True
+        self.logbook.contacts_by_id.pop(self.current_contact_idx)
+        self.statusbar.showMessage("QSO Deleted")
+        self.update_model()
+        self.clear_qso_fields()
+        return None
 
     def qso_fields_after_save(self):
         #In a contest...
+        
         if self.specialFieldsTabWidget.currentIndex() == 4:
             self.statusbar.showMessage("Saved in CONTEST mode")
             cntst_name = self.contestNameComboBox.currentText()
@@ -322,9 +352,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.powerLineEdit.setText(power)
             self.arrlSectionLineEdit.setText(arrlsect)
             self.modeComboBox.setCurrentText(mode)
+        else:
+            self.clear_qso_fields()
+        self.updateButtonBox.setVisible(False)
+        self.saveQSOButtonBox.setVisible(True)
         
     def load_qso_fields(self,idx):
         contact: m.Contact = self.logbook.contacts_by_id[idx]
+        self.current_contact_idx = idx
+        self.current_contact = contact
         self.theirCallLineEdit.setText(contact.get_attr('call'))
         self.dateEdit.setDate(contact.get_attr('qso_date'))
         self.timeEdit.setTime(contact.get_attr('qso_time')), 
@@ -353,7 +389,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.contestNameComboBox.setCurrentText(contact.get_attr(s.CONTEST_ID))
         self.arrlSectionLineEdit.setText(contact.get_attr(s.ARRL_SECT))
         self.serialRcvLineEdit.setText(contact.get_attr(s.SRX))
-        self.serialSentSpinBox.setValue(0 if contact.get_attr(s.STX)=='' else contact.get_attr(s.STX))
+        self.serialSentSpinBox.setValue(0 if contact.get_attr(s.STX)=='' else int(contact.get_attr(s.STX)))
         # Ver como deal con esto. self.myconfig[s.MY_STATE],MY_GRID=self.myconfig[s.MY_GRID],
         #                    MY_LAT=self.myconfig[s.MY_LAT], MY_LON=self.myconfig[s.MY_LON],
         #                    MY_POTA_REF = self.potaconf[s.MY_POTA_REF]
@@ -396,6 +432,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #model = qsoc.model_qsos_for_table(self.logbook)
         #self.logListTableView.setModel(model)
         self.logbook_change = True
+        self.updateButtonBox.setVisible(False)
+        self.saveQSOButtonBox.setVisible(True)
+        
 
     def clear_qso_fields(self):
         print("Clear")
