@@ -119,9 +119,10 @@ def logbook2adi(logbook,adifile):
     with open(adifile,'w') as file:
         file.write(adistr)
 
-def adifile2logbook(logbook,adifile):
+def adifile2logbook(logbook,adifile,statusbar):
     adistr = open(adifile,'r').read()
     logbook,status = m.Translator().adi2logbook(logbook,adistr)
+    statusbar.showMessage(str(status)+" contacts added.")
     return logbook
 
 def distance_from_me(contact,lat,long,unit="km"):

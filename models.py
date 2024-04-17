@@ -38,7 +38,7 @@ class Contact:
     
 
     def matches(self, contact):
-        if type(self.qso_date) is not datetime.date:
+        if type(self.qso_date) is not type(contact.qso_date):
             print("Bad contact:",self.__dict__)
             return False
         dt = datetime.datetime.combine(self.qso_date,self.qso_time)
@@ -64,6 +64,7 @@ class Contact:
     
     def get_attr(self,name):
         d = self.as_dict()
+        print("ATRIBG: Getting",name,name in d)
         if name in d:
             return d[name]
         else:
@@ -75,12 +76,20 @@ class Contact:
         # Just a dictionary with the right fields. Dates and times must be date and time objects.
         # Normalize the dictionary. It must have:
         
-        for k in self.must_have_keys:
+        for k in s.MUST_HAVE_QSO_FIELDS:
             if k not in dictstr:
                 dictstr[k]="" # Default to empty.
+            elif k == s.QSO_DATE:
+                dictstr[k] = datetime.datetime.strptime(str(dictstr[k]).strip(),r"%Y%m%d").date()
+            elif k == s.TIME_ON:
+                dictstr[k] = datetime.datetime.strptime(str(dictstr[k]).strip(),r'%H%M%S').time()
+                    
         c = cls(dictstr.pop(s.QSO_ID), dictstr.pop(s.MY_CALLSIGN), dictstr.pop(s.CALL), 
                 dictstr.pop(s.QSO_DATE),dictstr.pop(s.TIME_ON), dictstr.pop(s.BAND), 
                 dictstr.pop(s.MODE), sat_name = dictstr.pop(s.SAT_NAME), sat_mode=dictstr.pop(s.SAT_MODE),comment=dictstr.pop(s.COMMENT))
+        for k in dictstr: # The remaining fields must be checked for correct datatypes.
+            if k.startswith(s.FREQ):
+                dictstr[k] = float(str(dictstr[k]))
         c.other = dictstr
         return c
 
@@ -235,7 +244,9 @@ class LogBookTableModel(QtCore.QAbstractTableModel):
 
         
     def format_data(self,i,j):
-        value = self.logbook.contacts_by_id[i].as_dict()[self.columns[j]]
+        ctct = self.logbook.contacts_by_id[i].as_dict()
+        field = self.columns[j]
+        value = ctct[field] if field in ctct else None
         retval = value
         if isinstance(value,datetime.date) and (self.columns[j]).upper()==s.QSO_DATE:
             retval = value.strftime(r'%Y-%m-%d')
@@ -315,12 +326,7 @@ class Translator:
                 tag,rest = el.split(":",1)
                 value = rest[rest.find(">")+1:]
                 tag = tag.upper()
-                if tag == s.QSO_DATE:
-                    cont_dict[tag] = datetime.datetime.strptime(value.strip(),r"%Y%m%d").date()
-                elif tag ==s.TIME_ON:
-                    cont_dict[tag] = datetime.datetime.strptime(value.strip(),r'%H%M%S').time()
-                else:
-                    cont_dict[tag]=value
+                cont_dict[tag]=value
             cont_dict[s.QSO_ID] = logbook.get_next_id()
             print("importing contact",i,cont_dict)
             logbook.add_contact(Contact.from_dictionarystr(cont_dict))

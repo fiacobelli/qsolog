@@ -125,7 +125,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.updateButtonBox.addButton(cancelbtn,QDialogButtonBox.ButtonRole.HelpRole) #just to have a separate role.
         self.updateButtonBox.accepted.connect(self.update_qso)
         self.updateButtonBox.rejected.connect(self.delete_qso)
-        self.updateButtonBox.helpRequested.connect(self.discard_qso)
+        self.updateButtonBox.helpRequested.connect(lambda:self.discard_qso(cancelbtn))
         self.updateButtonBox.setVisible(False)
         self.lookupPushButton.clicked.connect(self.openqrz)
         
@@ -403,7 +403,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def adi2logbook(self):
         filename = QFileDialog.getOpenFileName(self, 'Open file', 
         './',"Adi files (*.adi)")
-        self.logbook = qsoc.adifile2logbook(self.logbook,filename[0])
+        self.logbook = qsoc.adifile2logbook(self.logbook,filename[0],self.statusbar)
         self.update_model()
 
 
