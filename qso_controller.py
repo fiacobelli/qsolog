@@ -83,7 +83,7 @@ def previous_qsos_with(callsign,logbook):
 
 def get_matching_rows(logbook,txt):
     # This will initially just search callsigns
-    idxs = [i for i,c in enumerate(logbook.contacts_by_id) if txt in c.call]
+    idxs = [i for i,c in enumerate(logbook.contacts_by_id) if txt.upper() in c.call]
     return idxs
 
 
@@ -118,6 +118,10 @@ def logbook2adi(logbook,adifile):
     adistr = m.Translator().logbook2adi(logbook)
     with open(adifile,'w') as file:
         file.write(adistr)
+
+def qsos2adistr(logbook,qso_id_list):
+    qsos = [m.Translator().contact2adi(x) for x in logbook.contacts_by_id if x.id in qso_id_list]
+    return "".join(qsos) 
 
 def adifile2logbook(logbook,adifile,statusbar):
     adistr = open(adifile,'r').read()

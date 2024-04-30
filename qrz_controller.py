@@ -12,6 +12,7 @@ QRZ_VALUES = {}
 QRZ_KEY = "Key"
 QRZ_XMLNS = '{http://xmldata.qrz.com}'
 QRZ_RESPONSE={}
+QRZ_LOGBOOK_BASE_URL = "https://logbook.qrz.com/api"
 
 def read_config():
     params=open('qrz.config','r').read().strip().split("\n")
@@ -53,7 +54,6 @@ def request_callsign(key,callsign):
     's':key}
     data = urllib.parse.urlencode(values)
     data = data.encode('ascii') # data should be bytes
-    req = urllib.request.Request(QRZ_CALL_BASE_URL, data)
     resp = urllib.request.urlopen(QRZ_CALL_BASE_URL,data=data)
     return resp.read()
 
@@ -80,6 +80,17 @@ def lookup_callsign(callsign):
         return populate_data(call_data)
     except Exception as e:
         return {'Error':'There was a problem retrieving data from QRZ:'+str(e)}
+
+
+def insert_qso(adi_str):
+    values = {"KEY": QRZ_VALUES[QRZ_KEY],
+           "ACTION":"INSERT",
+           "ADIF":adi_str}
+    data = urllib.parse.urlencode(values)
+    data = data.encode('ascii') # data should be bytes
+    resp = urllib.request.urlopen(QRZ_LOGBOOK_BASE_URL,data=data)
+    print(resp.read())
+    return resp.read()
 
 if __name__=='__main__':
     print(lookup_callsign("n0lsr"))
