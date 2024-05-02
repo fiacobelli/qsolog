@@ -70,6 +70,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return False
         self.logbook = qsoc.load_logbook(self.lastconf[s.CURRENT_LOGBOOK])
         self.lbmodel = m.LogBookTableModel(self.logbook)
+        self.logListTableView.setSortingEnabled(True)
         self.logListTableView.setModel(self.lbmodel)
         return True
 
@@ -108,11 +109,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         areyousure.setIcon(QMessageBox.Icon.Warning)
         option = areyousure.exec()
         if (option == QMessageBox.StandardButton.Yes):
-            self.load_qso_fields(self.logListTableView.selectedIndexes()[0].row())
+            print(self.logListTableView.selectedIndexes()[0].row(),self.logListTableView.selectedIndexes()[0].data() )
+            self.logListTableView.selectRow(self.logListTableView.selectedIndexes()[0].row())
+            print(self.logListTableView.selectedIndexes()[0].row(),self.logListTableView.selectedIndexes()[0].data() )
+            self.load_qso_fields(int(self.logListTableView.selectedIndexes()[0].data()),self.logListTableView.selectedIndexes()[0].row()) # Pass the ID of the contact.
             self.updateButtonBox.setVisible(True)
             self.saveQSOButtonBox.setVisible(False)
-        print(self.logListTableView.selectedIndexes()[0].row())
-    
+            
 
     def setup_buttons(self):
         self.saveQSOButtonBox.accepted.connect(self.save_qso)
@@ -323,7 +326,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.statusbar.showMessage("No QSO to delete")
             return True
-        self.logbook.contacts_by_id.pop(self.current_contact_idx)
+        self.logbook.remove_contact(contact)
         self.statusbar.showMessage("QSO Deleted")
         self.update_model()
         self.clear_qso_fields()
@@ -357,8 +360,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.updateButtonBox.setVisible(False)
         self.saveQSOButtonBox.setVisible(True)
         
-    def load_qso_fields(self,idx):
-        contact: m.Contact = self.logbook.contacts_by_id[idx]
+    def load_qso_fields(self,data,idx):
+        self.logListTableView.selectRow(idx)
+        contact: m.Contact = self.logbook.get_contact_by_id(data)
         self.current_contact_idx = idx
         self.current_contact = contact
         self.theirCallLineEdit.setText(contact.get_attr('call'))

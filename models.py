@@ -162,10 +162,10 @@ class LogBook:
 
     def get_contact_by_id(self,cid):
         idx = 0
-        while cid != self.contacs_by_id[idx].cid:
-            idx+=1
-        if idx<len(self.contacts_by_id):
-            return self.contacts_by_id[idx]
+        print("Getting contact ID",cid)
+        for c in self.contacts_by_id:
+            if c.id == cid:
+                return c
         return None
 
     def get_next_id(self):
@@ -226,7 +226,7 @@ class LogBookTableModel(QtCore.QAbstractTableModel):
             return QtGui.QBrush(Qt.BrushStyle.Dense4Pattern) #QtGui.QColor('#053061')
 
     def data(self, index, role):
-        i = index.row()
+        i = self.rowCount(None)-1-index.row()
         j = index.column()
         colname = self.columns[j].upper()
         if role == Qt.ItemDataRole.DisplayRole:
@@ -259,6 +259,7 @@ class LogBookTableModel(QtCore.QAbstractTableModel):
         return retval
 
     def format_band_color(self,value):
+        value = value.strip()
         if (value[:-1].isnumeric()):
             num = int(value[:-1])%148
             color = QtGui.QColor.colorNames()[num]
