@@ -98,6 +98,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.modeComboBox.addItems(qsoc.get_modes())
         self.bandComboBox.currentIndexChanged.connect(self.update_frequency)
         self.frequencyDoubleSpinBox.valueChanged.connect(self.update_band)
+        self.logListTableView.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.logListTableView.doubleClicked.connect(self.load_contact)
         self.current_contact = None
 
