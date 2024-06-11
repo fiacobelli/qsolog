@@ -91,6 +91,8 @@ class Contact:
             if k.startswith(s.FREQ):
                 dictstr[k] = float(str(dictstr[k]))
         c.other = dictstr
+        if c.qso_date==None or c.qso_time==None or c.call == None or c.band == None or c.qso_date=="" or c.qso_time=="" or c.call == "" or c.band == "":
+            return None
         return c
 
     def update_contact(self,**kwargs):
@@ -191,8 +193,13 @@ class LogBookTableModel(QtCore.QAbstractTableModel):
     def __init__(self,logbook):
         super(LogBookTableModel,self).__init__()
         self.logbook = logbook
-            
+        self.col_list = self.get_cols('columns.config')
         print(self.rowCount(0))
+
+    def get_cols(self,fname):
+        l = open(fname,'r').read().strip().split("\n")
+        colst =[x.split(",")[1] for x in l]
+        return colst
 
     def flags(self, index):
         return Qt.ItemFlag.ItemIsSelectable|Qt.ItemFlag.ItemIsEnabled
@@ -208,9 +215,9 @@ class LogBookTableModel(QtCore.QAbstractTableModel):
     def columnCount(self, index):
         cols=0
         if len(self.logbook.contacts_by_id)>0:
-            cols = len(self.logbook.contacts_by_id[0].as_dict())
+            cols = len(self.col_list)+1
             cont = self.logbook.contacts_by_id[0]
-            self.columns = [k for k in cont.as_dict()]
+            self.columns = ['id']+self.col_list #[k for k in cont.as_dict()]
             self.headers = [k.replace("_"," ").title() for k in self.columns]
         return cols # add one for the distance.
     
@@ -247,6 +254,7 @@ class LogBookTableModel(QtCore.QAbstractTableModel):
         ctct = self.logbook.contacts_by_id[i].as_dict()
         field = self.columns[j]
         value = ctct[field] if field in ctct else None
+       # print(field,value,ctct)
         retval = value
         if isinstance(value,datetime.date) and (self.columns[j]).upper()==s.QSO_DATE:
             retval = value.strftime(r'%Y-%m-%d')
@@ -271,7 +279,7 @@ class LogBookTableModel(QtCore.QAbstractTableModel):
         if s.COUNTRY in contact.other:
             country = contact.other[s.COUNTRY]
             if country in s.countries:
-                return QtGui.QIcon("./flags/"+s.countries[country].lower()+".png")
+                return QtGui.QIcon("flags/"+s.countries[country].lower()+".png")
 
 
 class Translator:
@@ -330,7 +338,9 @@ class Translator:
                 cont_dict[tag]=value
             cont_dict[s.QSO_ID] = logbook.get_next_id()
             print("importing contact",i,cont_dict)
-            logbook.add_contact(Contact.from_dictionarystr(cont_dict))
+            c = Contact.from_dictionarystr(cont_dict)
+            if c!=None:
+                logbook.add_contact(c)
             i+=1
         return logbook,i
     

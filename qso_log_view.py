@@ -169,6 +169,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.threadpool.start(worker)
 
     def update_pota_data(self,data):
+        if len(data)<5:
+            return None 
         self.theirParkNameLineEdit.setText(data["name"])
         self.potaGridLineEdit.setText(data['grid4'])
         self.potaLatLineEdit.setText(str(data['latitude']))
