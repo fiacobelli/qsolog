@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>898</width>
-    <height>729</height>
+    <width>920</width>
+    <height>834</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -24,7 +24,7 @@
     </sizepolicy>
    </property>
    <property name="layoutDirection">
-    <enum>Qt::LeftToRight</enum>
+    <enum>Qt::LayoutDirection::LeftToRight</enum>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout_2">
     <item>
@@ -36,14 +36,14 @@
        </sizepolicy>
       </property>
       <property name="orientation">
-       <enum>Qt::Vertical</enum>
+       <enum>Qt::Orientation::Vertical</enum>
       </property>
-      <widget class="QWidget" name="">
+      <widget class="QWidget" name="layoutWidget">
        <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
          <widget class="QSplitter" name="splitter_5">
           <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
           <widget class="QLabel" name="label_13">
            <property name="text">
@@ -56,7 +56,7 @@
         <item>
          <widget class="QSplitter" name="splitter_3">
           <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
           <widget class="QLabel" name="label_14">
            <property name="text">
@@ -75,7 +75,7 @@
           </widget>
           <widget class="QDateTimeEdit" name="zuluDateTimeEdit">
            <property name="timeSpec">
-            <enum>Qt::UTC</enum>
+            <enum>Qt::TimeSpec::UTC</enum>
            </property>
           </widget>
          </widget>
@@ -104,15 +104,15 @@
            </sizepolicy>
           </property>
           <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
           <widget class="QSplitter" name="splitter_8">
            <property name="orientation">
-            <enum>Qt::Vertical</enum>
+            <enum>Qt::Orientation::Vertical</enum>
            </property>
            <widget class="QSplitter" name="splitter">
             <property name="orientation">
-             <enum>Qt::Horizontal</enum>
+             <enum>Qt::Orientation::Horizontal</enum>
             </property>
             <widget class="QLabel" name="label">
              <property name="text">
@@ -150,7 +150,7 @@
            </widget>
            <widget class="QSplitter" name="splitter_4">
             <property name="orientation">
-             <enum>Qt::Horizontal</enum>
+             <enum>Qt::Orientation::Horizontal</enum>
             </property>
             <widget class="QLabel" name="label_3">
              <property name="text">
@@ -215,7 +215,7 @@
            </widget>
            <widget class="QSplitter" name="splitter_2">
             <property name="orientation">
-             <enum>Qt::Horizontal</enum>
+             <enum>Qt::Orientation::Horizontal</enum>
             </property>
             <widget class="QLabel" name="label_4">
              <property name="text">
@@ -260,7 +260,7 @@
              </property>
             </widget>
            </widget>
-           <widget class="QWidget" name="">
+           <widget class="QWidget" name="layoutWidget">
             <layout class="QVBoxLayout" name="verticalLayout">
              <item>
               <widget class="QLabel" name="label_5">
@@ -280,11 +280,11 @@
            </widget>
            <widget class="QSplitter" name="splitter_7">
             <property name="orientation">
-             <enum>Qt::Horizontal</enum>
+             <enum>Qt::Orientation::Horizontal</enum>
             </property>
             <widget class="QDialogButtonBox" name="updateButtonBox">
              <property name="standardButtons">
-              <set>QDialogButtonBox::NoButton</set>
+              <set>QDialogButtonBox::StandardButton::NoButton</set>
              </property>
             </widget>
             <widget class="QDialogButtonBox" name="saveQSOButtonBox">
@@ -292,14 +292,14 @@
               <string>Save or discard this entry</string>
              </property>
              <property name="standardButtons">
-              <set>QDialogButtonBox::Discard|QDialogButtonBox::Save</set>
+              <set>QDialogButtonBox::StandardButton::Discard|QDialogButtonBox::StandardButton::Save</set>
              </property>
             </widget>
            </widget>
           </widget>
           <widget class="QTabWidget" name="specialFieldsTabWidget">
            <property name="currentIndex">
-            <number>4</number>
+            <number>1</number>
            </property>
            <widget class="QWidget" name="generalTabl">
             <attribute name="title">
@@ -324,12 +324,12 @@
               </sizepolicy>
              </property>
              <property name="orientation">
-              <enum>Qt::Vertical</enum>
+              <enum>Qt::Orientation::Vertical</enum>
              </property>
              <widget class="QWidget" name="layoutWidget">
               <layout class="QFormLayout" name="generalInfoFormLayout">
                <property name="fieldGrowthPolicy">
-                <enum>QFormLayout::ExpandingFieldsGrow</enum>
+                <enum>QFormLayout::FieldGrowthPolicy::ExpandingFieldsGrow</enum>
                </property>
                <item row="0" column="0">
                 <widget class="QLabel" name="label_20">
@@ -448,26 +448,23 @@
             <widget class="QSplitter" name="splitter_10">
              <property name="geometry">
               <rect>
-               <x>0</x>
-               <y>0</y>
-               <width>271</width>
-               <height>271</height>
+               <x>1</x>
+               <y>2</y>
+               <width>321</width>
+               <height>381</height>
               </rect>
              </property>
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-               <horstretch>0</horstretch>
+              <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+               <horstretch>1</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
              <property name="orientation">
-              <enum>Qt::Vertical</enum>
+              <enum>Qt::Orientation::Vertical</enum>
              </property>
-             <widget class="QWidget" name="layoutWidget">
+             <widget class="QWidget" name="">
               <layout class="QFormLayout" name="formLayout">
-               <property name="fieldGrowthPolicy">
-                <enum>QFormLayout::ExpandingFieldsGrow</enum>
-               </property>
                <item row="0" column="0">
                 <widget class="QLabel" name="label_10">
                  <property name="text">
@@ -554,7 +551,40 @@
                </item>
               </layout>
              </widget>
-             <widget class="QListView" name="potaSpotsListView"/>
+             <widget class="QPushButton" name="pushButtonPotaSpots">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="toolTip">
+               <string>Push to refresh spots</string>
+              </property>
+              <property name="statusTip">
+               <string>Refreshing pota spots</string>
+              </property>
+              <property name="text">
+               <string>Refresh Spots</string>
+              </property>
+             </widget>
+             <widget class="QTableView" name="tableViewPotaSpots">
+              <property name="enabled">
+               <bool>true</bool>
+              </property>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+                <horstretch>1</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>192</height>
+               </size>
+              </property>
+             </widget>
             </widget>
            </widget>
            <widget class="QWidget" name="splitTab">
@@ -564,18 +594,18 @@
             <attribute name="toolTip">
              <string>Fields for split operation and DX contacts</string>
             </attribute>
-            <widget class="QWidget" name="">
+            <widget class="QWidget" name="layoutWidget">
              <property name="geometry">
               <rect>
                <x>10</x>
                <y>20</y>
                <width>240</width>
-               <height>23</height>
+               <height>27</height>
               </rect>
              </property>
              <layout class="QFormLayout" name="formLayout_3">
               <property name="fieldGrowthPolicy">
-               <enum>QFormLayout::ExpandingFieldsGrow</enum>
+               <enum>QFormLayout::FieldGrowthPolicy::ExpandingFieldsGrow</enum>
               </property>
               <item row="0" column="0">
                <widget class="QLabel" name="label_19">
@@ -627,7 +657,7 @@
              </property>
              <layout class="QFormLayout" name="formLayout_2">
               <property name="fieldGrowthPolicy">
-               <enum>QFormLayout::ExpandingFieldsGrow</enum>
+               <enum>QFormLayout::FieldGrowthPolicy::ExpandingFieldsGrow</enum>
               </property>
               <item row="0" column="0">
                <widget class="QLabel" name="label_7">
@@ -674,7 +704,7 @@
              </property>
              <layout class="QFormLayout" name="formLayout_4">
               <property name="fieldGrowthPolicy">
-               <enum>QFormLayout::ExpandingFieldsGrow</enum>
+               <enum>QFormLayout::FieldGrowthPolicy::ExpandingFieldsGrow</enum>
               </property>
               <item row="0" column="0">
                <widget class="QLabel" name="label_29">
@@ -685,6 +715,12 @@
               </item>
               <item row="0" column="1">
                <widget class="QComboBox" name="contestNameComboBox">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                  <horstretch>1</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
                 <property name="editable">
                  <bool>true</bool>
                 </property>
@@ -735,19 +771,14 @@
      </widget>
     </item>
    </layout>
-   <zorder>groupBox</zorder>
-   <zorder>splitter_3</zorder>
-   <zorder>searchLineEdit</zorder>
-   <zorder>label_13</zorder>
-   <zorder>logListTableView</zorder>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>898</width>
-     <height>24</height>
+     <width>920</width>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">

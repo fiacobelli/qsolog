@@ -24,5 +24,8 @@ def get_pota_spots():
 
 
 if __name__=="__main__":
-    print(get_pota_spots())
-    print(get_pota_info("K-2194"))
+    spots = get_pota_spots()
+    onepark = get_pota_info("K-2194")
+    f= open('testpota.json','w', encoding="utf-8")
+    f.write(str(spots))
+    f.close()

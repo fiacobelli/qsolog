@@ -7,6 +7,7 @@ import webbrowser
 from qsomain import Ui_MainWindow
 from config_dialog import Form
 import models as m
+import pota_model as pomo
 import qso_controller as qsoc
 import qrz_controller as qrz
 import pota_controller as pc
@@ -100,6 +101,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.frequencyDoubleSpinBox.valueChanged.connect(self.update_band)
         self.logListTableView.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.logListTableView.doubleClicked.connect(self.load_contact)
+        self.pushButtonPotaSpots.clicked.connect(self.load_pota_spots)
+        self.tableViewPotaSpots.doubleClicked.connect(self.select_pota_spot)
         self.current_contact = None
 
     def load_contact(self):
@@ -243,6 +246,29 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         dlg.exec()
 
 
+#### Functions related to the pota Spots box.
+    def load_pota_spots(self):
+        pota_loader = Worker(pc.get_pota_spots,None)
+        pota_loader.signals.result.connect(self.update_pota_data)
+        self.threadpool.start(pota_loader)
+        potamodel = pomo.PotaModel()
+        self.spots = potamodel.json2table(pc.get_pota_spots())
+        self.pmodel = pomo.PotaTableModel(self.spots[0],self.spots[1])
+        self.pmodel.layoutChanged.emit()
+        self.tableViewPotaSpots.setModel(self.pmodel)
+        return True
+
+
+    def select_pota_spot(self):
+        print(self.tableViewPotaSpots.selectedIndexes()[0].row(),self.tableViewPotaSpots.selectedIndexes()[0].data() )
+        self.tableViewPotaSpots.selectRow(self.tableViewPotaSpots.selectedIndexes()[0].row())
+        print(self.tableViewPotaSpots.selectedIndexes()[1].data())
+        self.theirParkIDLineEdit.setText(self.tableViewPotaSpots.selectedIndexes()[3].data())
+        self.theirCallLineEdit.setText(self.tableViewPotaSpots.selectedIndexes()[0].data())
+        self.frequencyDoubleSpinBox.setValue(float(self.tableViewPotaSpots.selectedIndexes()[1].data())/1000)
+        self.modeComboBox.setCurrentText(self.tableViewPotaSpots.selectedIndexes()[2].data())
+        self.fill_pota_data()
+        
 
 
 #### Functions related to loading and saving QSOs
