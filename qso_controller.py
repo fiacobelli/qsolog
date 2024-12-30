@@ -93,7 +93,20 @@ def read_configurations():
     qrzconfig = open("qrz.config","r").read()
     lastconf = open("lastsettings.config","r").read()
     potaconf = open("pota.config").read()
-    return(config_to_dict(myconfig),config_to_dict(qrzconfig),config_to_dict(lastconf),config_to_dict(potaconf))
+    portableconf = open("portable.config").read()
+    return(config_to_dict(myconfig),config_to_dict(qrzconfig),config_to_dict(lastconf),config_to_dict(potaconf),config_to_dict(portableconf))
+
+def get_portable_config():
+    portableconf = open("portable.config").read()
+    d = config_to_dict(portableconf)
+    d[s.MY_POTA_REF]=""
+    return d
+
+def get_my_config():
+    myconfig = open("qsolog.config","r").read()
+    d = config_to_dict(myconfig)
+    d[s.MY_POTA_REF]=""
+    return d
 
 def config_to_dict(config_str,delim=","):
     # Convert CSV config to DICT.

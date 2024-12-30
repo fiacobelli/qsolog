@@ -56,13 +56,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 
     def setup_configurations(self):
-        self.myconfig,self.qrzconfig,self.lastconf,self.potaconf = qsoc.read_configurations()
+        self.myconfig,self.qrzconfig,self.lastconf,self.potaconf,self.portableconf = qsoc.read_configurations()
         self.my_callsign = self.myconfig[s.MY_CALLSIGN]
         self.groupBox.setTitle("DE "+self.my_callsign)
         self.statusbar.showMessage("Logging QSO DE "+self.my_callsign+" on "+self.lastconf[s.CURRENT_LOGBOOK])
         self.logbook_change = False
         self.restore_previous_log()
         self.restore_previous_settings()
+        self.myQTH = qsoc.get_my_config()
     
 
         
@@ -105,6 +106,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tableViewPotaSpots.doubleClicked.connect(self.select_pota_spot)
         self.current_contact = None
 
+
     def load_contact(self):
         areyousure = QMessageBox(self)
         areyousure.setWindowTitle("WARNING!")
@@ -121,6 +123,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.saveQSOButtonBox.setVisible(False)
             
 
+
     def setup_buttons(self):
         self.saveQSOButtonBox.accepted.connect(self.save_qso)
         self.saveQSOButtonBox.clicked.connect(self.discard_qso)
@@ -135,8 +138,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.updateButtonBox.helpRequested.connect(lambda:self.discard_qso(cancelbtn))
         self.updateButtonBox.setVisible(False)
         self.lookupPushButton.clicked.connect(self.openqrz)
-        
-
 
 
     def setup_menu(self):
@@ -149,6 +150,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         
         self.action_ADI_File.triggered.connect(self.logbook2adi)
         self.actionImport_A_DI.triggered.connect(self.adi2logbook)
+        self.action_Cabrillo_Format.triggered.connect(self.export_cabrillo)
+
+        self.actionMy_Rig.triggered.connect(lambda:self.select_qth('mine'))
+        self.actionPortable_elsewhere.triggered.connect(lambda:self.select_qth('portable'))
+        self.actionThis_is_a_POTA_activation.triggered.connect(lambda:self.select_qth('pota'))
 
 
     def setup_other_events(self):
@@ -158,13 +164,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         
 
     # Actions that happen when you move around.
+    def select_qth(self,qth):
+        if qth=='mine':
+            self.actionPortable_elsewhere.setChecked(False)
+            self.actionThis_is_a_POTA_activation.setChecked(False)
+        elif qth=='pota':
+            self.actionMy_Rig.setChecked(False)
+            self.actionPortable_elsewhere.setChecked(False)
+            self.open_config('pota')
+        else:
+            self.actionMy_Rig.setChecked(False)
+            self.actionThis_is_a_POTA_activation.setChecked(False)
+            self.open_config('portable')
+
+
     def fill_callsign_details(self):
-        worker = Worker(qrz.lookup_callsign,self.theirCallLineEdit.text())
-        worker.signals.result.connect(self.update_callsign_data)
-        self.threadpool.start(worker)
+        if len(self.theirCallLineEdit.text())>2:
+            worker = Worker(qrz.lookup_callsign,self.theirCallLineEdit.text())
+            worker.signals.result.connect(self.update_callsign_data)
+            self.threadpool.start(worker)
+            self.search_qsos(self.theirCallLineEdit.text())
         self.update_qso_clock()
-        self.search_qsos(self.theirCallLineEdit.text())
-        
 
     def fill_pota_data(self):
         worker = Worker(pc.get_pota_info,self.theirParkIDLineEdit.text())
@@ -216,7 +236,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.qsoGridLineEdit.setText(qrz_data[s.GRIDSQUARE])
         self.latLineEdit.setText(qrz_data[s.LAT])
         self.lonLineEdit.setText(qrz_data[s.LON])
-        self.statusbar.showMessage(f"contact is {qsoc.distance_from_me(qrz_data[s.LAT],qrz_data[s.LON],self.myconfig[s.MY_LAT],self.myconfig[s.MY_LON])} km. away")
+        self.statusbar.showMessage(f"contact is {qsoc.distance_from_me(qrz_data[s.LAT],qrz_data[s.LON],self.myconfig[s.MY_LAT],self.myconfig[s.MY_LON]):.0f} km. away")
         return True
         
     def search_qsos(self,txt):
@@ -242,6 +262,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         elif config=='qrz':
             dlg.make_window("./qrz.config")
             dlg.setWindowTitle("My QRZ Information") 
+        elif config=='pota':
+            dlg.make_window("./pota.config")
+            dlg.setWindowTitle("My POTA Information")
+        elif config=='portable':
+            dlg.make_window("./portable.config")
+            dlg.setWindowTitle("Portable QTH")
         dlg.setParent(self)
         dlg.exec()
 
@@ -294,8 +320,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.updateButtonBox.setVisible(False)
             self.saveQSOButtonBox.setVisible(True)
 
+    def get_my_qth(self):
+        if self.actionThis_is_a_POTA_activation.isChecked():
+            self.myQTH = pc.get_pota_qth()
+        elif self.actionPortable_elsewhere.isChecked():
+            self.myQTH = qsoc.get_portable_qth()
+        else:
+            self.myQTH = qsoc.get_my_config()
+
     def save_qso(self):
-        print("Save")
+        print("Saving")
         if (self.logbook and len(self.theirCallLineEdit.text())>1):
             state,grid,lat,lon = self.get_location()
             qsoc.insert_contact(self.logbook,self.my_callsign,self.theirCallLineEdit.text(),self.dateEdit.date().toPyDate(),
@@ -308,9 +342,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                             ADDRESS = self.qsoAddressLineEdit.text(), COUNTRY=self.qsoCountryLineEdit.text(),
                             CONTEST_ID = self.contestNameComboBox.currentText(), ARRL_SECT = self.arrlSectionLineEdit.text(),
                             SRX = self.serialRcvLineEdit.text(), STX=self.serialSentSpinBox.text(),
-                            MY_STATE = self.myconfig[s.MY_STATE],MY_GRID=self.myconfig[s.MY_GRID],
-                            MY_LAT=self.myconfig[s.MY_LAT], MY_LON=self.myconfig[s.MY_LON],
-                            MY_POTA_REF = self.potaconf[s.MY_POTA_REF]
+                            MY_STATE = self.myQTH[s.MY_STATE],MY_GRID=self.myQTH[s.MY_GRID],
+                            MY_LAT=self.myQTH[s.MY_LAT], MY_LON=self.myQTH[s.MY_LON],
+                            MY_POTA_REF = self.myQTH[s.MY_POTA_REF]
                             )
             self.update_model()
         else:
@@ -439,7 +473,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.logbook = qsoc.adifile2logbook(self.logbook,filename[0],self.statusbar)
         self.update_model()
 
-
+    def export_cabrillo(self):
+        webbrowser.open(self.myconfig[s.CABRILLO_EXPORT_URL])
 
 # Considerations for a qso
     def get_location(self):
