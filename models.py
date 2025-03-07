@@ -8,8 +8,9 @@ import external_strings as s
 import sys
 from PyQt6 import QtCore, QtGui, QtWidgets, uic
 from PyQt6.QtCore import Qt
+import sqlite3
 
-
+QSO_DB = "qso.db"
 class Contact:
     def __init__(self, cid,my_callsign,their_callsign,date,time,band,mode,comment=None,sat_name=None,sat_mode=None):
         self.id = cid
@@ -108,8 +109,42 @@ class Contact:
         for k,v in kwargs.items():
             if k not in self.must_have_keys:
                 self.other[k]=v
+        self.update_contact()
         return True
             
+
+    def update_db(self):
+    # Connect to the SQLite3 database
+        conn = sqlite3.connect(QSO_DB)
+        cursor = conn.cursor()
+
+        # Update the row in the table
+        update_query = """
+                        UPDATE qso
+                        SET my_callsign = ?,
+                            call = ?,
+                            qso_date = ?,
+                            time_on = ?,
+                            band = ?,
+                            mode = ?,
+                            sat_mode = ?,
+                            sat_name = ?,
+                            comment = ?,
+                            other = ?
+                        WHERE qso_id = ?
+                        """
+
+    # Execute the update query
+        cursor.execute(update_query, (
+            self.my_callsign, self.call,int(self.qso_date.timestamp()),self.time_on,self.band,
+            self.mode,self.sat_mode, self.other, self.id
+        ))
+
+        # Commit the changes and close the connection
+        conn.commit()
+        conn.close()
+        return True
+    
 
 
 
