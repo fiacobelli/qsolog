@@ -236,7 +236,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.qsoGridLineEdit.setText(qrz_data[s.GRIDSQUARE])
         self.latLineEdit.setText(qrz_data[s.LAT])
         self.lonLineEdit.setText(qrz_data[s.LON])
-        self.statusbar.showMessage(f"contact is {qsoc.distance_from_me(qrz_data[s.LAT],qrz_data[s.LON],self.myconfig[s.MY_LAT],self.myconfig[s.MY_LON]):.0f} km. away")
+        self.statusbar.showMessage(f"contact is {qsoc.distance_from_me(qrz_data[s.LAT],qrz_data[s.LON],self.myQTH[s.MY_LAT],self.myQTH[s.MY_LON]):.0f} km. away")
         return True
         
     def search_qsos(self,txt):
