@@ -78,19 +78,100 @@ class AppState extends ChangeNotifier {
 
   void _applyFilter() {
     var result = qsos;
+
+    // Parse special operators out of the search query
+    // Supported: after:YYYY-MM-DD  before:YYYY-MM-DD  band:20m  mode:SSB
+    // Everything else is a plain text search
+    DateTime? afterDate;
+    DateTime? beforeDate;
+    String? bandFilter;
+    String? modeFilter;
+    final plainTerms = <String>[];
+
     if (searchQuery.isNotEmpty) {
-      final q = searchQuery.toLowerCase();
-      result = result.where((e) =>
-        e.callsign.toLowerCase().contains(q) ||
-        (e.contactName?.toLowerCase().contains(q) ?? false) ||
-        (e.contactQth?.toLowerCase().contains(q) ?? false) ||
-        (e.contactCountry?.toLowerCase().contains(q) ?? false)
-      ).toList();
+      for (final token in searchQuery.trim().split(RegExp(r'\s+'))) {
+        final lower = token.toLowerCase();
+        if (lower.startsWith('after:')) {
+          final raw = token.substring(6);
+          afterDate = DateTime.tryParse(raw);
+        } else if (lower.startsWith('before:')) {
+          final raw = token.substring(7);
+          beforeDate = DateTime.tryParse(raw);
+          // Make before: inclusive of the full day
+          if (beforeDate != null) {
+            beforeDate = beforeDate.add(const Duration(days: 1));
+          }
+        } else if (lower.startsWith('band:')) {
+          bandFilter = token.substring(5).toLowerCase();
+        } else if (lower.startsWith('mode:')) {
+          modeFilter = token.substring(5).toLowerCase();
+        } else if (token.isNotEmpty) {
+          plainTerms.add(lower);
+        }
+      }
     }
+
+    // Plain text search across callsign, name, QTH, country, comments
+    if (plainTerms.isNotEmpty) {
+      result = result.where((e) {
+        return plainTerms.every((term) =>
+          e.callsign.toLowerCase().contains(term) ||
+          (e.contactName?.toLowerCase().contains(term) ?? false) ||
+          (e.contactQth?.toLowerCase().contains(term) ?? false) ||
+          (e.contactCountry?.toLowerCase().contains(term) ?? false) ||
+          (e.contactState?.toLowerCase().contains(term) ?? false) ||
+          (e.comments.toLowerCase().contains(term)));
+      }).toList();
+    }
+
+    // Date filters
+    if (afterDate != null) {
+      result = result
+          .where((e) => e.dateTime.toUtc().isAfter(afterDate!))
+          .toList();
+    }
+    if (beforeDate != null) {
+      result = result
+          .where((e) => e.dateTime.toUtc().isBefore(beforeDate!))
+          .toList();
+    }
+
+    // Band filter
+    if (bandFilter != null) {
+      result = result
+          .where((e) => e.band.toLowerCase() == bandFilter)
+          .toList();
+    }
+
+    // Mode filter
+    if (modeFilter != null) {
+      result = result
+          .where((e) => e.mode.toLowerCase() == modeFilter)
+          .toList();
+    }
+
+    // Tag filter
     if (filterTag != null) {
       result = result.where((e) => e.tags.contains(filterTag)).toList();
     }
+
     filteredQsos = result;
+  }
+
+  /// Returns any active date/band/mode operators parsed from the search query,
+  /// used by the UI to show filter indicator badges.
+  Map<String, String> get activeSearchOperators {
+    final ops = <String, String>{};
+    if (searchQuery.isEmpty) return ops;
+    for (final token in searchQuery.trim().split(RegExp(r'\s+'))) {
+      final lower = token.toLowerCase();
+      if (lower.startsWith('after:') || lower.startsWith('before:') ||
+          lower.startsWith('band:') || lower.startsWith('mode:')) {
+        final colon = token.indexOf(':');
+        ops[token.substring(0, colon).toLowerCase()] = token.substring(colon + 1);
+      }
+    }
+    return ops;
   }
 
   void setSearch(String q) {

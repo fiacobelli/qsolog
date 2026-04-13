@@ -45,3 +45,5 @@ msix_config:
   identity_name: com.fid.qsolog
   msix_version: 1.0.0.0
   logo_path: windows\runner\resources\app_icon.ico
+  certificate_path:  C:\Windows\System32\cert.pfx
+  certificate_password: YOUR_CERTIFICATE_PASSWORD

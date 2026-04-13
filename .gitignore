@@ -62,3 +62,9 @@ windows/flutter/generated_plugins.cmake
 *.log
 pubspec.lock
 
+# Certificates for windows
+cert.pfx
+*.pfx
+*.p12
+secrets.txt
+

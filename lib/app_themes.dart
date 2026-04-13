@@ -168,10 +168,12 @@ class AppThemes {
         style: ElevatedButton.styleFrom(
           backgroundColor: seed,
           foregroundColor: onDark,
-          minimumSize: const Size(0, 48), // larger tap targets
-          textStyle: GoogleFonts.atkinsonHyperlegible(
-              fontSize: 16, fontWeight: FontWeight.bold),
+          minimumSize: const Size(0, 48),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        ).copyWith(
+          textStyle: WidgetStatePropertyAll(
+            const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(

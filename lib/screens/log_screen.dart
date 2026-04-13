@@ -214,92 +214,123 @@ class _LogScreenState extends State<LogScreen> {
             ]),
           ],
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(116),
-          child: Column(children: [
-            // Plugin selector bar
-            Container(
-              color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.4),
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Row(children: _plugins.map((p) {
-                  final isActive = p['id'] == state.activePlugin;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: ChoiceChip(
-                      avatar: Icon(p['icon'] as IconData, size: 16,
-                          color: isActive ? Theme.of(context).colorScheme.onPrimary : null),
-                      label: Text(p['label'] as String),
-                      selected: isActive,
-                      selectedColor: Theme.of(context).colorScheme.primary,
-                      labelStyle: TextStyle(
-                        color: isActive ? Theme.of(context).colorScheme.onPrimary : null,
-                        fontSize: 12,
-                      ),
-                      onSelected: (_) => state.setActivePlugin(p['id'] as String),
-                    ),
-                  );
-                }).toList()),
-              ),
-            ),
-            // Search bar
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-              child: TextField(
-                controller: _searchCtrl,
-                decoration: InputDecoration(
-                  hintText: 'Search callsign, name, QTH...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchCtrl.text.isNotEmpty
-                      ? IconButton(icon: const Icon(Icons.clear),
-                          onPressed: () { _searchCtrl.clear(); state.setSearch(''); })
-                      : null,
-                  filled: true,
-                  fillColor: Theme.of(context).colorScheme.surface,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                ),
-                onChanged: state.setSearch,
-              ),
-            ),
-            // Tag filter chips
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
-              child: Row(children: [
-                FilterChip(label: const Text('All'), selected: state.filterTag == null,
-                    onSelected: (_) => state.setFilterTag(null)),
-                const SizedBox(width: 6),
-                ...state.tags.map((t) => Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: FilterChip(
-                    label: Text(t.name),
-                    selected: state.filterTag == t.name,
-                    onSelected: (_) => state.setFilterTag(state.filterTag == t.name ? null : t.name),
-                  ),
-                )),
-              ]),
-            ),
-          ]),
-        ),
+        bottom: null,
       ),
-      body: state.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : qsos.isEmpty
-              ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.radio, size: 64, color: Colors.grey),
-                  const SizedBox(height: 16),
-                  Text('No QSOs logged yet', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  const Text('Tap + to log your first contact'),
-                ]))
-              : ListView.separated(
-                  itemCount: qsos.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (context, i) => _QsoTile(qso: qsos[i]),
+      body: Column(
+        children: [
+          // Plugin selector bar
+          Container(
+            color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.4),
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(children: _plugins.map((p) {
+                final isActive = p['id'] == state.activePlugin;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: ChoiceChip(
+                    avatar: Icon(p['icon'] as IconData, size: 16,
+                        color: isActive ? Theme.of(context).colorScheme.onPrimary : null),
+                    label: Text(p['label'] as String),
+                    selected: isActive,
+                    selectedColor: Theme.of(context).colorScheme.primary,
+                    labelStyle: TextStyle(
+                      color: isActive ? Theme.of(context).colorScheme.onPrimary : null,
+                      fontSize: 12,
+                    ),
+                    onSelected: (_) => state.setActivePlugin(p['id'] as String),
+                  ),
+                );
+              }).toList()),
+            ),
+          ),
+          // Search bar
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
+            child: TextField(
+              controller: _searchCtrl,
+              decoration: InputDecoration(
+                hintText: 'Search or use after:YYYY-MM-DD  band:20m  mode:SSB',
+                hintStyle: const TextStyle(fontSize: 12),
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchCtrl.text.isNotEmpty
+                    ? IconButton(icon: const Icon(Icons.clear),
+                        onPressed: () { _searchCtrl.clear(); state.setSearch(''); })
+                    : null,
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surface,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              onChanged: state.setSearch,
+            ),
+          ),
+          // Active operator badges — only shown when operators are in use
+          if (state.activeSearchOperators.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 2, 12, 2),
+              child: Wrap(
+                spacing: 6,
+                children: state.activeSearchOperators.entries.map((e) {
+                  return Chip(
+                    label: Text('${e.key}: ${e.value}',
+                        style: const TextStyle(fontSize: 11, color: Colors.white)),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    padding: EdgeInsets.zero,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    deleteIcon: const Icon(Icons.close, size: 14, color: Colors.white70),
+                    onDeleted: () {
+                      final updated = _searchCtrl.text
+                          .replaceAll(RegExp('${e.key}:${e.value}',
+                              caseSensitive: false), '')
+                          .trim();
+                      _searchCtrl.text = updated;
+                      state.setSearch(updated);
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
+          // Tag filter chips
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(12, 2, 12, 6),
+            child: Row(children: [
+              FilterChip(label: const Text('All'), selected: state.filterTag == null,
+                  onSelected: (_) => state.setFilterTag(null)),
+              const SizedBox(width: 6),
+              ...state.tags.map((t) => Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: FilterChip(
+                  label: Text(t.name),
+                  selected: state.filterTag == t.name,
+                  onSelected: (_) => state.setFilterTag(
+                      state.filterTag == t.name ? null : t.name),
                 ),
+              )),
+            ]),
+          ),
+          // QSO list
+          Expanded(
+            child: state.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : qsos.isEmpty
+                    ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.radio, size: 64, color: Colors.grey),
+                        const SizedBox(height: 16),
+                        Text('No QSOs logged yet', style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(height: 8),
+                        const Text('Tap + to log your first contact'),
+                      ]))
+                    : ListView.separated(
+                        itemCount: qsos.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (context, i) => _QsoTile(qso: qsos[i]),
+                      ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openActivePlugin(context),
         icon: Icon(activePluginInfo['icon'] as IconData),
