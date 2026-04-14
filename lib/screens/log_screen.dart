@@ -348,7 +348,8 @@ class _QsoTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final isSelected = state.selectedIds.contains(qso.id);
-    final dt = DateFormat('yyyy-MM-dd HH:mm').format(qso.dateTime.toUtc());
+    // Shorter date format to save horizontal space on small screens
+    final dt = DateFormat('MM-dd HH:mm').format(qso.dateTime.toUtc());
 
     // Build location string: combine QTH, state, country sensibly
     final locationParts = <String>[];
@@ -368,86 +369,132 @@ class _QsoTile extends StatelessWidget {
         if (state.selectedIds.isNotEmpty) {
           state.toggleSelection(qso.id);
         } else {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => AddQsoScreen(existing: qso)));
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => AddQsoScreen(existing: qso)));
         }
       },
       onLongPress: () => state.toggleSelection(qso.id),
       child: Container(
-        color: isSelected ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3) : null,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        color: isSelected
+            ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
+            : null,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (state.selectedIds.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(right: 8, top: 2),
-                child: Icon(isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-                    color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey),
+                child: Icon(
+                    isSelected
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    size: 20,
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.grey),
               ),
             // Country flag
             Padding(
-              padding: const EdgeInsets.only(right: 10, top: 2),
+              padding: const EdgeInsets.only(right: 8, top: 2),
               child: CountryFlagWidget(country: qso.contactCountry),
             ),
+            // Main content — takes all remaining space
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Callsign + band + mode badges
-                  Row(children: [
-                    Text(qso.callsign, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(color: Theme.of(context).colorScheme.secondaryContainer,
-                          borderRadius: BorderRadius.circular(8)),
-                      child: Text(qso.band, style: TextStyle(fontSize: 11,
-                          color: Theme.of(context).colorScheme.onSecondaryContainer)),
-                    ),
-                    const SizedBox(width: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(color: Theme.of(context).colorScheme.tertiaryContainer,
-                          borderRadius: BorderRadius.circular(8)),
-                      child: Text(qso.mode, style: TextStyle(fontSize: 11,
-                          color: Theme.of(context).colorScheme.onTertiaryContainer)),
-                    ),
-                  ]),
+                  // Callsign + band + mode — use Flexible so badges wrap
+                  // if the callsign is long
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 4,
+                    runSpacing: 2,
+                    children: [
+                      Text(qso.callsign,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 15)),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .secondaryContainer,
+                            borderRadius: BorderRadius.circular(6)),
+                        child: Text(qso.band,
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSecondaryContainer)),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .tertiaryContainer,
+                            borderRadius: BorderRadius.circular(6)),
+                        child: Text(qso.mode,
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onTertiaryContainer)),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 2),
                   // Contact name
                   if (qso.contactName != null && qso.contactName!.isNotEmpty)
-                    Text(qso.contactName!, style: const TextStyle(fontSize: 13)),
-                  // Location + distance on the same row
+                    Text(qso.contactName!,
+                        style: const TextStyle(fontSize: 13),
+                        overflow: TextOverflow.ellipsis),
+                  // Location + distance
                   if (locationStr.isNotEmpty || qso.distanceKm != null)
-                    Row(
-                      children: [
-                        if (locationStr.isNotEmpty)
-                          Expanded(
-                            child: Text(locationStr,
-                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                                overflow: TextOverflow.ellipsis),
-                          ),
-                        DistanceBadge(km: qso.distanceKm),
-                      ],
-                    ),
+                    Row(children: [
+                      if (locationStr.isNotEmpty)
+                        Expanded(
+                          child: Text(locationStr,
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade600),
+                              overflow: TextOverflow.ellipsis),
+                        ),
+                      DistanceBadge(km: qso.distanceKm),
+                    ]),
                   // Tags
                   if (qso.tags.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Wrap(spacing: 4, runSpacing: 2,
-                        children: qso.tags.map((t) => TagChip(tagName: t)).toList()),
+                    const SizedBox(height: 3),
+                    Wrap(
+                        spacing: 4,
+                        runSpacing: 2,
+                        children: qso.tags
+                            .map((t) => TagChip(tagName: t))
+                            .toList()),
                   ],
                 ],
               ),
             ),
-            // Right column: time, freq, RST
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text('$dt UTC', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-                const SizedBox(height: 4),
-                Text('${qso.frequency.toStringAsFixed(3)} MHz', style: const TextStyle(fontSize: 11)),
-                Text('RST ${qso.rstSent}/${qso.rstReceived}', style: const TextStyle(fontSize: 11)),
-              ],
+            // Right column — fixed width so it never causes overflow
+            SizedBox(
+              width: 88,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text('$dt Z',
+                      style: TextStyle(
+                          fontSize: 10, color: Colors.grey.shade600)),
+                  const SizedBox(height: 2),
+                  Text('${qso.frequency.toStringAsFixed(3)}',
+                      style: const TextStyle(fontSize: 10)),
+                  Text('${qso.rstSent}/${qso.rstReceived}',
+                      style: TextStyle(
+                          fontSize: 10, color: Colors.grey.shade600)),
+                ],
+              ),
             ),
           ],
         ),
