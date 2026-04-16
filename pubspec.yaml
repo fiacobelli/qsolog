@@ -54,12 +54,3 @@ flutter_launcher_icons:
   macos:
     generate: true
   image_path: assets/icon/icon.png
-
-msix_config:
-  display_name: QSOLog
-  publisher_display_name: Francisco Iacobelli KX9F
-  identity_name: com.fid.qsolog
-  msix_version: 1.0.0.0
-  logo_path: windows\runner\resources\app_icon.ico
-  certificate_path:  C:\Windows\System32\cert.pfx
-  certificate_password: YOUR_CERTIFICATE_PASSWORD

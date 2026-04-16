@@ -321,7 +321,7 @@ class _LogScreenState extends State<LogScreen> {
                         const SizedBox(height: 16),
                         Text('No QSOs logged yet', style: Theme.of(context).textTheme.titleMedium),
                         const SizedBox(height: 8),
-                        const Text('Tap + to log your first contact'),
+                        const Text('Tap the button at the bottom to log your first contact'),
                       ]))
                     : ListView.separated(
                         itemCount: qsos.length,
