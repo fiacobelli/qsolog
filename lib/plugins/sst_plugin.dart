@@ -17,16 +17,28 @@ class _SstPluginState extends State<SstPlugin> {
   final _callCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
   final _stateCtrl = TextEditingController();
-  double _freq = 14.030;
-  String _band = '20m';
-  String _mode = 'CW';
+  late double _freq;
+  late String _band;
+  late String _mode;
   bool _lookingUp = false;
   int _count = 0;
   final _focusNode = FocusNode();
 
   @override
+  void initState() {
+    super.initState();
+    // Carry forward last used band/mode/freq
+    final state = context.read<AppState>();
+    _freq = state.lastFreq;
+    _band = state.lastBand;
+    _mode = state.lastMode;
+  }
+
+  @override
   void dispose() {
-    _callCtrl.dispose(); _nameCtrl.dispose(); _stateCtrl.dispose();
+    _callCtrl.dispose();
+    _nameCtrl.dispose();
+    _stateCtrl.dispose();
     _focusNode.dispose();
     super.dispose();
   }
@@ -44,7 +56,7 @@ class _SstPluginState extends State<SstPlugin> {
       _nameCtrl.text = data.name ?? '';
       _stateCtrl.text = data.state ?? '';
     }
-    setState(() => _lookingUp = false);
+    if (mounted) setState(() => _lookingUp = false);
   }
 
   Future<void> _logAndClear() async {
@@ -70,13 +82,15 @@ class _SstPluginState extends State<SstPlugin> {
       },
     );
     await state.addQso(qso);
-    setState(() {
-      _count++;
-      _callCtrl.clear();
-      _nameCtrl.clear();
-      _stateCtrl.clear();
-    });
-    _focusNode.requestFocus();
+    if (mounted) {
+      setState(() {
+        _count++;
+        _callCtrl.clear();
+        _nameCtrl.clear();
+        _stateCtrl.clear();
+      });
+      _focusNode.requestFocus();
+    }
   }
 
   @override
@@ -110,21 +124,27 @@ class _SstPluginState extends State<SstPlugin> {
                 children: [
                   Icon(Icons.speed, color: Colors.orange.shade700),
                   const SizedBox(width: 8),
-                  const Expanded(child: Text(
-                    'Saturday Speed Test - All QSOs tagged SST automatically',
-                    style: TextStyle(fontSize: 13),
-                  )),
+                  const Expanded(
+                    child: Text(
+                      'Slow Speed Contest — All QSOs tagged SST automatically',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
 
-            // Band/Freq
+            // Band / Freq / Mode
             BandFrequencySelector(
               initialFreq: _freq,
               initialBand: _band,
               initialMode: _mode,
-              onChanged: (f, b, m) => setState(() { _freq = f; _band = b; _mode = m; }),
+              onChanged: (f, b, m) => setState(() {
+                _freq = f;
+                _band = b;
+                _mode = m;
+              }),
             ),
             const SizedBox(height: 20),
 
@@ -157,7 +177,11 @@ class _SstPluginState extends State<SstPlugin> {
                 if (_lookingUp)
                   const Padding(
                     padding: EdgeInsets.only(bottom: 8),
-                    child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
                   ),
               ],
             ),
@@ -176,11 +200,11 @@ class _SstPluginState extends State<SstPlugin> {
             // State
             TextField(
               controller: _stateCtrl,
+              textCapitalization: TextCapitalization.characters,
               decoration: const InputDecoration(
                 labelText: 'State',
                 border: OutlineInputBorder(),
               ),
-              textCapitalization: TextCapitalization.characters,
             ),
             const SizedBox(height: 24),
 
@@ -191,7 +215,10 @@ class _SstPluginState extends State<SstPlugin> {
               child: ElevatedButton.icon(
                 onPressed: _logAndClear,
                 icon: const Icon(Icons.check),
-                label: const Text('Log QSO + Next', style: TextStyle(fontSize: 16)),
+                label: const Text(
+                  'Log QSO + Next',
+                  style: TextStyle(fontSize: 16),
+                ),
               ),
             ),
           ],

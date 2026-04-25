@@ -32,10 +32,11 @@ class AddQsoScreen extends StatefulWidget {
 class _AddQsoScreenState extends State<AddQsoScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _callCtrl, _rstSentCtrl, _rstRcvdCtrl, _commentCtrl,
-      _nameCtrl, _qthCtrl, _gridCtrl, _countryCtrl, _stateCtrl;
+      _nameCtrl, _qthCtrl, _gridCtrl, _countryCtrl, _stateCtrl, _timeCtrl;
   late double _freq;
   late String _band, _mode;
   late List<String> _tags;
+  late DateTime _qsoDateTime;
   bool _lookingUp = false;
   String? _lookupError;
 
@@ -43,6 +44,8 @@ class _AddQsoScreenState extends State<AddQsoScreen> {
   void initState() {
     super.initState();
     final q = widget.existing;
+    final state = context.read<AppState>();
+    _qsoDateTime = q?.dateTime ?? DateTime.now().toUtc();
     _callCtrl = TextEditingController(text: q?.callsign ?? widget.prefilledCallsign ?? '');
     _rstSentCtrl = TextEditingController(text: q?.rstSent ?? '59');
     _rstRcvdCtrl = TextEditingController(text: q?.rstReceived ?? '59');
@@ -52,16 +55,37 @@ class _AddQsoScreenState extends State<AddQsoScreen> {
     _gridCtrl = TextEditingController(text: q?.contactGrid ?? '');
     _countryCtrl = TextEditingController(text: q?.contactCountry ?? '');
     _stateCtrl = TextEditingController(text: q?.contactState ?? '');
-    _freq = q?.frequency ?? widget.prefilledFreq ?? 14.225;
+    _timeCtrl = TextEditingController(text: _formatDateTime(_qsoDateTime));
+    // For new QSOs carry forward the last used band/mode/freq
+    _freq = q?.frequency ?? widget.prefilledFreq ?? state.lastFreq;
     _band = q?.band ?? BandFrequency.bandFromFrequency(_freq);
-    _mode = q?.mode ?? widget.prefilledMode ?? 'SSB';
+    _mode = q?.mode ?? widget.prefilledMode ?? state.lastMode;
     _tags = q?.tags ?? List.from(widget.prefilledTags ?? []);
+  }
+
+  String _formatDateTime(DateTime dt) {
+    final u = dt.toUtc();
+    return '${u.year.toString().padLeft(4,'0')}-'
+        '${u.month.toString().padLeft(2,'0')}-'
+        '${u.day.toString().padLeft(2,'0')} '
+        '${u.hour.toString().padLeft(2,'0')}:'
+        '${u.minute.toString().padLeft(2,'0')}Z';
+  }
+
+  DateTime? _parseDateTime(String s) {
+    // Accept formats: YYYY-MM-DD HH:MMZ  or  YYYY-MM-DD HH:MM
+    try {
+      final clean = s.replaceAll('Z', '').trim();
+      return DateTime.parse('${clean.replaceAll(' ', 'T')}:00Z');
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
   void dispose() {
     for (final c in [_callCtrl, _rstSentCtrl, _rstRcvdCtrl, _commentCtrl,
-        _nameCtrl, _qthCtrl, _gridCtrl, _countryCtrl, _stateCtrl]) {
+        _nameCtrl, _qthCtrl, _gridCtrl, _countryCtrl, _stateCtrl, _timeCtrl]) {
       c.dispose();
     }
     super.dispose();
@@ -128,7 +152,7 @@ class _AddQsoScreenState extends State<AddQsoScreen> {
       rstSent: _rstSentCtrl.text,
       rstReceived: _rstRcvdCtrl.text,
       comments: _commentCtrl.text,
-      dateTime: widget.existing?.dateTime ?? DateTime.now().toUtc(),
+      dateTime: _parseDateTime(_timeCtrl.text) ?? _qsoDateTime,
       contactName: _nameCtrl.text.isNotEmpty ? _nameCtrl.text : null,
       contactQth: _qthCtrl.text.isNotEmpty ? _qthCtrl.text : null,
       contactGrid: _gridCtrl.text.isNotEmpty ? _gridCtrl.text : null,
@@ -172,9 +196,19 @@ class _AddQsoScreenState extends State<AddQsoScreen> {
               tooltip: 'Delete QSO',
               color: Colors.red.shade200,
             ),
-          IconButton(icon: const Icon(Icons.save), onPressed: _save, tooltip: 'Save'),
         ],
       ),
+      // Prominent save FAB
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _save,
+        icon: const Icon(Icons.save, size: 26),
+        label: Text(
+          widget.existing != null ? 'Save Changes' : 'Log QSO',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        elevation: 6,
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -250,6 +284,23 @@ class _AddQsoScreenState extends State<AddQsoScreen> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+
+              // Date/Time UTC — editable
+              TextFormField(
+                controller: _timeCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Date/Time (UTC)',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.access_time),
+                  helperText: 'Format: YYYY-MM-DD HH:MMZ',
+                ),
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Required';
+                  if (_parseDateTime(v) == null) return 'Use format: YYYY-MM-DD HH:MMZ';
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
 

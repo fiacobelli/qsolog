@@ -1,12 +1,22 @@
 #include <flutter/dart_project.h>
 #include <flutter/flutter_view_controller.h>
 #include <windows.h>
-
+#include <shlwapi.h> //for the working path routing
 #include "flutter_window.h"
 #include "utils.h"
 
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
+  // Set working directory to where the .exe file is.
+  wchar_t exePath[MAX_PATH];
+  GetModuleFileNameW(nullptr, exePath, MAX_PATH);
+  PathRemoveFileSpecW(exePath);
+  SetCurrentDirectoryW(exePath);
+
+  // Take care of not using GPUs
+  ::SetEnvironmentVariable(L"FLUTTER_ENGINE_SWITCHES", L"2");
+  ::SetEnvironmentVariable(L"FLUTTER_ENGINE_SWITCH_0", L"--disable-gpu");
+  ::SetEnvironmentVariable(L"FLUTTER_ENGINE_SWITCH_1", L"--disable-gpu-compositing");
   // Attach to console when present (e.g., 'flutter run') or create a
   // new console when running with a debugger.
   if (!::AttachConsole(ATTACH_PARENT_PROCESS) && ::IsDebuggerPresent()) {

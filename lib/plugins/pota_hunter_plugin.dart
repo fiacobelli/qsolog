@@ -373,6 +373,7 @@ class _PotaContactFormState extends State<_PotaContactForm> {
   late double _freq;
   late String _band, _mode;
   bool _logging = false;
+  bool _lookingUpName = false;
 
   @override
   void initState() {
@@ -383,6 +384,20 @@ class _PotaContactFormState extends State<_PotaContactForm> {
     _freq = widget.spot.frequency;
     _band = BandFrequency.bandFromFrequency(_freq);
     _mode = widget.spot.mode;
+    // Auto-lookup the activator's name from QRZ
+    WidgetsBinding.instance.addPostFrameCallback((_) => _lookupActivatorName());
+  }
+
+  Future<void> _lookupActivatorName() async {
+    final state = context.read<AppState>();
+    if (state.qrzSettings.username.isEmpty) return;
+    setState(() => _lookingUpName = true);
+    final data = await state.qrzService.lookupCallsign(
+        widget.spot.activatorCallsign, state.qrzSettings);
+    if (mounted && data?.name != null) {
+      _nameCtrl.text = data!.name!;
+    }
+    if (mounted) setState(() => _lookingUpName = false);
   }
 
   @override
@@ -397,14 +412,7 @@ class _PotaContactFormState extends State<_PotaContactForm> {
     setState(() => _logging = true);
     final state = context.read<AppState>();
 
-    if (_nameCtrl.text.isEmpty && state.qrzSettings.username.isNotEmpty) {
-      final data = await state.qrzService.lookupCallsign(
-          widget.spot.activatorCallsign, state.qrzSettings);
-      if (data?.name != null && mounted) {
-        _nameCtrl.text = data!.name!;
-      }
-    }
-
+    // Name already pre-filled from QRZ on init — no need to look up again
     final qso = QsoEntry(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       callsign: widget.spot.activatorCallsign.toUpperCase(),
@@ -516,13 +524,21 @@ class _PotaContactFormState extends State<_PotaContactForm> {
             ),
             const SizedBox(height: 16),
 
-            // Activator name
+            // Activator name — pre-filled from QRZ
             TextField(
               controller: _nameCtrl,
-              decoration: const InputDecoration(
-                  labelText: "Activator's name",
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person)),
+              decoration: InputDecoration(
+                labelText: "Activator's name",
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.person),
+                suffixIcon: _lookingUpName
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SizedBox(width: 16, height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2)))
+                    : null,
+                helperText: _lookingUpName ? 'Looking up from QRZ...' : null,
+              ),
             ),
             const SizedBox(height: 12),
 

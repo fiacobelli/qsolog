@@ -29,11 +29,12 @@ class QrzService {
   static const _baseUrl = 'https://xmldata.qrz.com/xml/current/';
   String? _sessionKey;
 
+  /// Login using username + password — required for XML callsign lookups
   Future<bool> login(QrzSettings settings) async {
     if (settings.username.isEmpty || settings.password.isEmpty) return false;
     try {
       final response = await http.get(Uri.parse(
-          '$_baseUrl?username=${settings.username}&password=${settings.password}&agent=HamLog1.0'));
+          '$_baseUrl?username=${settings.username}&password=${settings.password}&agent=QSOLog1.0'));
       final doc = XmlDocument.parse(response.body);
       final key = doc.findAllElements('Key').firstOrNull?.innerText;
       if (key != null) {
@@ -44,21 +45,24 @@ class QrzService {
     return false;
   }
 
-  Future<QrzCallsignData?> lookupCallsign(String callsign, QrzSettings settings) async {
+  /// Lookup callsign info using XML subscription (username + password)
+  Future<QrzCallsignData?> lookupCallsign(
+      String callsign, QrzSettings settings) async {
+    if (settings.username.isEmpty || settings.password.isEmpty) return null;
     if (_sessionKey == null) {
       final ok = await login(settings);
       if (!ok) return null;
     }
     try {
-      final response = await http.get(
-          Uri.parse('$_baseUrl?s=$_sessionKey&callsign=${callsign.toUpperCase()}'));
+      final response = await http.get(Uri.parse(
+          '$_baseUrl?s=$_sessionKey&callsign=${callsign.toUpperCase()}'));
       final doc = XmlDocument.parse(response.body);
 
-      // Check for session error
+      // Check for session expiry and retry once
       final error = doc.findAllElements('Error').firstOrNull?.innerText;
       if (error != null && error.toLowerCase().contains('session')) {
         _sessionKey = null;
-        return await lookupCallsign(callsign, settings); // retry
+        return await lookupCallsign(callsign, settings);
       }
 
       final callEl = doc.findAllElements('Callsign').firstOrNull;
@@ -74,7 +78,8 @@ class QrzService {
       final city = getText('addr2') ?? '';
       final state = getText('state') ?? '';
       final country = getText('country') ?? '';
-      final qth = [city, state, country].where((s) => s.isNotEmpty).join(', ');
+      final qth =
+          [city, state, country].where((s) => s.isNotEmpty).join(', ');
 
       return QrzCallsignData(
         callsign: callsign.toUpperCase(),
@@ -91,21 +96,45 @@ class QrzService {
     }
   }
 
-  Future<bool> uploadAdif(String adifContent, QrzSettings settings) async {
-    if (_sessionKey == null) {
-      final ok = await login(settings);
-      if (!ok) return false;
-    }
+  /// Test the XML login credentials (username + password)
+  Future<bool> testLogin(QrzSettings settings) async {
+    _sessionKey = null; // force fresh login
+    return await login(settings);
+  }
+
+  /// Test the logbook API key by sending a STATUS request
+  Future<bool> testApiKey(QrzSettings settings) async {
+    if (settings.apiKey.isEmpty) return false;
     try {
       final response = await http.post(
         Uri.parse('https://logbook.qrz.com/api'),
         body: {
-          'KEY': settings.password, // QRZ uses API key for logbook
+          'KEY': settings.apiKey,
+          'ACTION': 'STATUS',
+        },
+      );
+      return response.body.contains('RESULT=OK') ||
+          response.body.contains('LOGID=') ||
+          response.body.contains('COUNT=');
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Upload ADIF to QRZ logbook using the API key
+  Future<bool> uploadAdif(String adifContent, QrzSettings settings) async {
+    if (settings.apiKey.isEmpty) return false;
+    try {
+      final response = await http.post(
+        Uri.parse('https://logbook.qrz.com/api'),
+        body: {
+          'KEY': settings.apiKey,
           'ACTION': 'INSERT',
           'ADIF': adifContent,
         },
       );
-      return response.body.contains('RESULT=OK') || response.body.contains('COUNT=');
+      return response.body.contains('RESULT=OK') ||
+          response.body.contains('COUNT=');
     } catch (_) {
       return false;
     }

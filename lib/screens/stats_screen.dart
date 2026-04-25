@@ -1,29 +1,135 @@
 // lib/screens/stats_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../models/models.dart';
 import '../services/app_state.dart';
 import '../widgets/common_widgets.dart';
 
-class StatsScreen extends StatelessWidget {
+class StatsScreen extends StatefulWidget {
   const StatsScreen({super.key});
+
+  @override
+  State<StatsScreen> createState() => _StatsScreenState();
+}
+
+class _StatsScreenState extends State<StatsScreen> {
+  DateTime? _fromDate;
+  DateTime? _toDate;
+  String? _filterTag;
+
+  // ── Filters ──────────────────────────────────────────────────────────────
+
+  List<QsoEntry> _applyFilters(List<QsoEntry> all) {
+    var q = all;
+    if (_fromDate != null) {
+      q = q.where((e) => !e.dateTime.toUtc().isBefore(_fromDate!)).toList();
+    }
+    if (_toDate != null) {
+      final end = _toDate!.add(const Duration(days: 1));
+      q = q.where((e) => e.dateTime.toUtc().isBefore(end)).toList();
+    }
+    if (_filterTag != null) {
+      q = q.where((e) => e.tags.contains(_filterTag)).toList();
+    }
+    return q;
+  }
+
+  Future<void> _pickDate(BuildContext context, bool isFrom) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: (isFrom ? _fromDate : _toDate) ?? now,
+      firstDate: DateTime(2000),
+      lastDate: now,
+    );
+    if (picked != null) {
+      setState(() {
+        if (isFrom) _fromDate = picked.toUtc();
+        else _toDate = picked.toUtc();
+      });
+    }
+  }
+
+  void _clearFilters() => setState(() {
+    _fromDate = null;
+    _toDate = null;
+    _filterTag = null;
+  });
+
+  // ── Streak calculation ───────────────────────────────────────────────────
+
+  /// Returns {streak, avgPerDay, longestDist} for consecutive days ending today
+  Map<String, dynamic> _calcStreak(List<QsoEntry> qsos) {
+    if (qsos.isEmpty) return {'streak': 0, 'avg': 0.0, 'longestDist': null};
+
+    // Build a set of UTC dates that have at least one QSO
+    final days = <String>{};
+    for (final q in qsos) {
+      final d = q.dateTime.toUtc();
+      days.add('${d.year}-${d.month.toString().padLeft(2,'0')}-${d.day.toString().padLeft(2,'0')}');
+    }
+
+    // Walk backwards from today counting consecutive days
+    int streak = 0;
+    final today = DateTime.now().toUtc();
+    DateTime cursor = DateTime.utc(today.year, today.month, today.day);
+
+    while (true) {
+      final key = '${cursor.year}-${cursor.month.toString().padLeft(2,'0')}-${cursor.day.toString().padLeft(2,'0')}';
+      if (!days.contains(key)) break;
+      streak++;
+      cursor = cursor.subtract(const Duration(days: 1));
+    }
+
+    if (streak == 0) return {'streak': 0, 'avg': 0.0, 'longestDist': null};
+
+    // QSOs during the streak window
+    final streakStart = DateTime.now().toUtc().subtract(Duration(days: streak - 1));
+    final streakQsos = qsos.where((q) =>
+      !q.dateTime.toUtc().isBefore(DateTime.utc(streakStart.year, streakStart.month, streakStart.day))).toList();
+
+    final avg = streak > 0 ? streakQsos.length / streak : 0.0;
+
+    // Longest distance in streak
+    double? longestDist;
+    String? longestCall;
+    for (final q in streakQsos) {
+      if (q.distanceKm != null && (longestDist == null || q.distanceKm! > longestDist!)) {
+        longestDist = q.distanceKm;
+        longestCall = q.callsign;
+      }
+    }
+
+    return {
+      'streak': streak,
+      'avg': avg,
+      'longestDist': longestDist,
+      'longestCall': longestCall,
+    };
+  }
+
+  // ── UI ───────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
-    final qsos = state.qsos;
+    final allQsos = state.qsos;
+    final qsos = _applyFilters(allQsos);
+    final tags = state.tags;
+    final fmt = DateFormat('MM/dd/yy');
+    final hasFilters = _fromDate != null || _toDate != null || _filterTag != null;
 
-    if (qsos.isEmpty) {
+    if (allQsos.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: const Text('Statistics')),
         body: const Center(child: Text('No QSOs logged yet.')),
       );
     }
 
-    // --- Compute stats ---
+    // ── Compute stats on filtered QSOs ──────────────────────────────────
     final total = qsos.length;
 
-    // Per-country counts
     final countryCounts = <String, int>{};
     for (final q in qsos) {
       final c = q.contactCountry?.trim();
@@ -34,16 +140,13 @@ class StatsScreen extends StatelessWidget {
     final sortedCountries = countryCounts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
-    // Top 3 callsigns
     final callCounts = <String, int>{};
     for (final q in qsos) {
       callCounts[q.callsign] = (callCounts[q.callsign] ?? 0) + 1;
     }
-    final topCallsigns = callCounts.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    final top3 = topCallsigns.take(3).toList();
+    final top3 = (callCounts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value))).take(3).toList();
 
-    // Per-tag counts
     final tagCounts = <String, int>{};
     for (final q in qsos) {
       for (final t in q.tags) {
@@ -53,7 +156,6 @@ class StatsScreen extends StatelessWidget {
     final sortedTags = tagCounts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
-    // Per-band counts
     final bandCounts = <String, int>{};
     for (final q in qsos) {
       bandCounts[q.band] = (bandCounts[q.band] ?? 0) + 1;
@@ -61,36 +163,206 @@ class StatsScreen extends StatelessWidget {
     final sortedBands = bandCounts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
+    // Streak (always computed on all QSOs — streak is an absolute concept)
+    final streak = _calcStreak(allQsos);
+    final streakDays = streak['streak'] as int;
+    final streakAvg = streak['avg'] as double;
+    final streakDist = streak['longestDist'] as double?;
+    final streakCall = streak['longestCall'] as String?;
+
+    // Longest distance in filtered QSOs
+    double? longestDist;
+    String? longestCall;
+    for (final q in qsos) {
+      if (q.distanceKm != null && (longestDist == null || q.distanceKm! > longestDist!)) {
+        longestDist = q.distanceKm;
+        longestCall = q.callsign;
+      }
+    }
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Statistics')),
+      appBar: AppBar(
+        title: const Text('Statistics'),
+        actions: [
+          if (hasFilters)
+            TextButton.icon(
+              onPressed: _clearFilters,
+              icon: const Icon(Icons.filter_alt_off, size: 18),
+              label: const Text('Clear'),
+            ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Total QSOs hero card
+
+          // ── Filter bar ────────────────────────────────────────────────
           _StatCard(
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.radio, size: 40, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('$total', style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary)),
-                    const Text('Total QSOs', style: TextStyle(fontSize: 14, color: Colors.grey)),
-                  ],
-                ),
+                Row(children: [
+                  Icon(Icons.filter_alt, size: 16,
+                      color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 6),
+                  Text('Filter', style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary)),
+                ]),
+                const SizedBox(height: 10),
+                // Date range row
+                Row(children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.calendar_today, size: 14),
+                      label: Text(_fromDate != null
+                          ? 'From: ${fmt.format(_fromDate!)}'
+                          : 'From date',
+                          style: const TextStyle(fontSize: 12)),
+                      onPressed: () => _pickDate(context, true),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.calendar_today, size: 14),
+                      label: Text(_toDate != null
+                          ? 'To: ${fmt.format(_toDate!)}'
+                          : 'To date',
+                          style: const TextStyle(fontSize: 12)),
+                      onPressed: () => _pickDate(context, false),
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 8),
+                // Tag filter
+                if (tags.isNotEmpty)
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: [
+                      FilterChip(
+                        label: const Text('All tags'),
+                        selected: _filterTag == null,
+                        onSelected: (_) => setState(() => _filterTag = null),
+                      ),
+                      ...tags.map((t) => FilterChip(
+                        label: Text(t.name),
+                        selected: _filterTag == t.name,
+                        onSelected: (_) => setState(() =>
+                            _filterTag = _filterTag == t.name ? null : t.name),
+                      )),
+                    ],
+                  ),
+                if (hasFilters) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Showing $total of ${allQsos.length} QSOs',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                ],
               ],
             ),
           ),
           const SizedBox(height: 16),
 
-          // Top callsigns
+          // ── Total QSOs hero card ──────────────────────────────────────
+          _StatCard(
+            child: Row(children: [
+              Icon(Icons.radio, size: 40,
+                  color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 16),
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('$total',
+                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary)),
+                Text(hasFilters ? 'Filtered QSOs' : 'Total QSOs',
+                    style: const TextStyle(fontSize: 14, color: Colors.grey)),
+              ]),
+              if (longestDist != null) ...[
+                const Spacer(),
+                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                  Text(state.formatDistance(longestDist!),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16,
+                          color: Theme.of(context).colorScheme.secondary)),
+                  Text('Longest: $longestCall',
+                      style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                ]),
+              ],
+            ]),
+          ),
+          const SizedBox(height: 16),
+
+          // ── On a Roll streak card ─────────────────────────────────────
+          if (streakDays > 0) ...[
+            _SectionHeader(title: 'On a Roll 🔥', icon: Icons.local_fire_department),
+            _StatCard(
+              child: Row(children: [
+                // Streak days bubble
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.orange.shade600,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('$streakDays',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold)),
+                      const Text('days',
+                          style: TextStyle(color: Colors.white70, fontSize: 10)),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        streakDays == 1
+                            ? 'You logged a QSO today — keep it going!'
+                            : 'You\'ve logged QSOs $streakDays days in a row!',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${streakAvg.toStringAsFixed(1)} QSOs/day average',
+                        style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                      ),
+                      if (streakDist != null) ...[
+                        const SizedBox(height: 4),
+                        Row(children: [
+                          Icon(Icons.open_in_full, size: 13,
+                              color: Colors.grey.shade600),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Longest: ${state.formatDistance(streakDist)} — $streakCall',
+                            style: TextStyle(fontSize: 12,
+                                color: Colors.grey.shade600),
+                          ),
+                        ]),
+                      ],
+                    ],
+                  ),
+                ),
+              ]),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // ── Top callsigns ─────────────────────────────────────────────
           _SectionHeader(title: 'Top Callsigns', icon: Icons.star),
           _StatCard(
-            child: top3.isEmpty
-                ? const Text('No data')
+            child: total == 0
+                ? const Text('No data for this filter')
                 : Column(
                     children: top3.asMap().entries.map((entry) {
                       final rank = entry.key + 1;
@@ -106,12 +378,13 @@ class StatsScreen extends StatelessWidget {
                               Colors.brown.shade400,
                             ][entry.key],
                             child: Text('$rank',
-                                style: const TextStyle(color: Colors.white, fontSize: 12,
-                                    fontWeight: FontWeight.bold)),
+                                style: const TextStyle(color: Colors.white,
+                                    fontSize: 12, fontWeight: FontWeight.bold)),
                           ),
                           const SizedBox(width: 12),
                           Expanded(child: Text(e.key,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 15))),
                           Text('${e.value} QSO${e.value != 1 ? 's' : ''}',
                               style: TextStyle(color: Colors.grey.shade600)),
                         ]),
@@ -121,7 +394,7 @@ class StatsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // QSOs by tag
+          // ── QSOs by tag ───────────────────────────────────────────────
           if (sortedTags.isNotEmpty) ...[
             _SectionHeader(title: 'QSOs by Tag', icon: Icons.label),
             _StatCard(
@@ -137,21 +410,23 @@ class StatsScreen extends StatelessWidget {
             const SizedBox(height: 16),
           ],
 
-          // QSOs by band
+          // ── QSOs by band ──────────────────────────────────────────────
           _SectionHeader(title: 'QSOs by Band', icon: Icons.waves),
           _StatCard(
-            child: Column(
-              children: sortedBands.map((e) => _BarRow(
-                label: e.key,
-                count: e.value,
-                total: total,
-                color: Theme.of(context).colorScheme.primary,
-              )).toList(),
-            ),
+            child: total == 0
+                ? const Text('No data for this filter')
+                : Column(
+                    children: sortedBands.map((e) => _BarRow(
+                      label: e.key,
+                      count: e.value,
+                      total: total,
+                      color: Theme.of(context).colorScheme.primary,
+                    )).toList(),
+                  ),
           ),
           const SizedBox(height: 16),
 
-          // QSOs by country
+          // ── QSOs by country ───────────────────────────────────────────
           if (sortedCountries.isNotEmpty) ...[
             _SectionHeader(title: 'QSOs by Country', icon: Icons.flag),
             _StatCard(
@@ -168,7 +443,7 @@ class StatsScreen extends StatelessWidget {
                     SizedBox(
                       width: 100,
                       child: LinearProgressIndicator(
-                        value: e.value / (sortedCountries.first.value),
+                        value: e.value / sortedCountries.first.value,
                         backgroundColor: Colors.grey.shade200,
                         borderRadius: BorderRadius.circular(4),
                       ),
@@ -194,6 +469,8 @@ class StatsScreen extends StatelessWidget {
     }
   }
 }
+
+// ── Reusable widgets ──────────────────────────────────────────────────────
 
 class _StatCard extends StatelessWidget {
   final Widget child;
@@ -221,7 +498,8 @@ class _SectionHeader extends StatelessWidget {
       child: Row(children: [
         Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
         const SizedBox(width: 6),
-        Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14,
+        Text(title, style: TextStyle(
+            fontWeight: FontWeight.bold, fontSize: 14,
             color: Theme.of(context).colorScheme.primary)),
       ]),
     );
@@ -242,8 +520,9 @@ class _BarRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(children: [
-        SizedBox(width: 60, child: Text(label,
-            style: const TextStyle(fontWeight: FontWeight.w600))),
+        SizedBox(width: 60,
+            child: Text(label,
+                style: const TextStyle(fontWeight: FontWeight.w600))),
         const SizedBox(width: 8),
         Expanded(
           child: LinearProgressIndicator(

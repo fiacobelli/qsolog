@@ -23,6 +23,11 @@ class AppState extends ChangeNotifier {
   String appTheme = 'default';
   final QrzService qrzService = QrzService();
 
+  // Last used band/mode/freq — carried forward to new QSOs
+  String lastBand = '20m';
+  String lastMode = 'SSB';
+  double lastFreq = 14.225;
+
   Future<void> initialize() async {
     isLoading = true;
     notifyListeners();
@@ -35,6 +40,12 @@ class AppState extends ChangeNotifier {
     mapQsoCount = await SettingsService.loadMapQsoCount();
     appTheme = await SettingsService.loadAppTheme();
     await loadQsos();
+    // Seed last band/mode/freq from most recent QSO
+    if (qsos.isNotEmpty) {
+      lastBand = qsos.first.band;
+      lastMode = qsos.first.mode;
+      lastFreq = qsos.first.frequency;
+    }
     isLoading = false;
     notifyListeners();
   }
@@ -252,6 +263,10 @@ class AppState extends ChangeNotifier {
     );
 
     await DatabaseService.insertQso(stamped);
+    // Remember band/mode/freq for the next QSO
+    lastBand = stamped.band;
+    lastMode = stamped.mode;
+    lastFreq = stamped.frequency;
     await loadQsos();
     return true;
   }

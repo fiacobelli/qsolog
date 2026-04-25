@@ -361,10 +361,13 @@ class _QrzTab extends StatefulWidget {
 }
 
 class _QrzTabState extends State<_QrzTab> {
-  late TextEditingController _userCtrl, _passCtrl;
-  bool _obscure = true;
-  bool _testing = false;
-  String? _testResult;
+  late TextEditingController _userCtrl, _passCtrl, _apiKeyCtrl;
+  bool _obscurePass = true;
+  bool _obscureKey = true;
+  bool _testingLogin = false;
+  bool _testingKey = false;
+  String? _loginResult;
+  String? _keyResult;
 
   @override
   void initState() {
@@ -372,28 +375,57 @@ class _QrzTabState extends State<_QrzTab> {
     final s = context.read<AppState>().qrzSettings;
     _userCtrl = TextEditingController(text: s.username);
     _passCtrl = TextEditingController(text: s.password);
+    _apiKeyCtrl = TextEditingController(text: s.apiKey);
   }
 
   @override
   void dispose() {
-    _userCtrl.dispose(); _passCtrl.dispose();
+    _userCtrl.dispose();
+    _passCtrl.dispose();
+    _apiKeyCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     final state = context.read<AppState>();
-    await state.saveQrz(QrzSettings(username: _userCtrl.text.trim(), password: _passCtrl.text.trim()));
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('QRZ settings saved')));
+    await state.saveQrz(QrzSettings(
+      username: _userCtrl.text.trim(),
+      password: _passCtrl.text.trim(),
+      apiKey: _apiKeyCtrl.text.trim(),
+    ));
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('QRZ settings saved')));
   }
 
-  Future<void> _test() async {
-    setState(() { _testing = true; _testResult = null; });
-    final state = context.read<AppState>();
-    final ok = await state.qrzService.login(
-      QrzSettings(username: _userCtrl.text.trim(), password: _passCtrl.text.trim()));
+  Future<void> _testLogin() async {
+    setState(() { _testingLogin = true; _loginResult = null; });
+    final settings = QrzSettings(
+      username: _userCtrl.text.trim(),
+      password: _passCtrl.text.trim(),
+      apiKey: _apiKeyCtrl.text.trim(),
+    );
+    final ok = await context.read<AppState>().qrzService.testLogin(settings);
     setState(() {
-      _testing = false;
-      _testResult = ok ? '✓ Connected to QRZ successfully!' : '✗ Login failed. Check credentials.';
+      _testingLogin = false;
+      _loginResult = ok
+          ? '✓ Login successful — callsign lookup will work'
+          : '✗ Login failed — check username and password';
+    });
+  }
+
+  Future<void> _testApiKey() async {
+    setState(() { _testingKey = true; _keyResult = null; });
+    final settings = QrzSettings(
+      username: _userCtrl.text.trim(),
+      password: _passCtrl.text.trim(),
+      apiKey: _apiKeyCtrl.text.trim(),
+    );
+    final ok = await context.read<AppState>().qrzService.testApiKey(settings);
+    setState(() {
+      _testingKey = false;
+      _keyResult = ok
+          ? '✓ API key valid — logbook upload will work'
+          : '✗ API key invalid — check your QRZ logbook API key';
     });
   }
 
@@ -404,48 +436,149 @@ class _QrzTabState extends State<_QrzTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('QRZ XML Subscription required for callsign lookup.\nQRZ API key required for logbook upload.',
-              style: TextStyle(fontSize: 13, color: Colors.grey)),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _userCtrl,
-            decoration: const InputDecoration(labelText: 'QRZ Username', border: OutlineInputBorder()),
+          // Section: Callsign lookup
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Icon(Icons.search, size: 18, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 6),
+                  Text('Callsign Lookup',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14,
+                          color: Theme.of(context).colorScheme.primary)),
+                ]),
+                const SizedBox(height: 4),
+                const Text(
+                    'Requires a QRZ XML Data subscription. Used to auto-fill '
+                    'name, QTH, grid and coordinates when logging a QSO.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _userCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'QRZ Username',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.person),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _passCtrl,
+                  obscureText: _obscurePass,
+                  decoration: InputDecoration(
+                    labelText: 'QRZ Password',
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.lock),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscurePass ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () => setState(() => _obscurePass = !_obscurePass),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _testingLogin ? null : _testLogin,
+                    icon: _testingLogin
+                        ? const SizedBox(width: 16, height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.wifi_tethering, size: 18),
+                    label: const Text('Test Login'),
+                  ),
+                ),
+                if (_loginResult != null) ...[
+                  const SizedBox(height: 8),
+                  Text(_loginResult!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: _loginResult!.startsWith('✓') ? Colors.green : Colors.red,
+                      )),
+                ],
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _passCtrl,
-            obscureText: _obscure,
-            decoration: InputDecoration(
-              labelText: 'QRZ Password / API Key',
-              border: const OutlineInputBorder(),
-              suffixIcon: IconButton(
-                icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
-                onPressed: () => setState(() => _obscure = !_obscure),
-              ),
+          const SizedBox(height: 16),
+
+          // Section: Logbook upload
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Icon(Icons.cloud_upload, size: 18, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 6),
+                  Text('Logbook Upload',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14,
+                          color: Theme.of(context).colorScheme.primary)),
+                ]),
+                const SizedBox(height: 4),
+                const Text(
+                    'Requires a QRZ Logbook API key. Find it at QRZ.com → Logbook → Settings → API. '
+                    'Used to upload QSOs directly to your QRZ logbook.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _apiKeyCtrl,
+                  obscureText: _obscureKey,
+                  decoration: InputDecoration(
+                    labelText: 'QRZ Logbook API Key',
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.vpn_key),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscureKey ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () => setState(() => _obscureKey = !_obscureKey),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _testingKey ? null : _testApiKey,
+                    icon: _testingKey
+                        ? const SizedBox(width: 16, height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.check_circle_outline, size: 18),
+                    label: const Text('Test API Key'),
+                  ),
+                ),
+                if (_keyResult != null) ...[
+                  const SizedBox(height: 8),
+                  Text(_keyResult!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: _keyResult!.startsWith('✓') ? Colors.green : Colors.red,
+                      )),
+                ],
+              ],
             ),
           ),
           const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(child: ElevatedButton(onPressed: _save, child: const Text('Save'))),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _testing ? null : _test,
-                  child: _testing
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('Test Connection'),
-                ),
-              ),
-            ],
+
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _save,
+              icon: const Icon(Icons.save),
+              label: const Text('Save QRZ Settings'),
+            ),
           ),
-          if (_testResult != null) ...[
-            const SizedBox(height: 12),
-            Text(_testResult!, style: TextStyle(
-              color: _testResult!.startsWith('✓') ? Colors.green : Colors.red,
-              fontWeight: FontWeight.bold,
-            )),
-          ],
         ],
       ),
     );

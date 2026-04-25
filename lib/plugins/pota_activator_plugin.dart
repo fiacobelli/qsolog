@@ -17,9 +17,9 @@ class _PotaActivatorPluginState extends State<PotaActivatorPlugin> {
   // Park config (set once)
   final _parkCtrl = TextEditingController();
   final _parkNameCtrl = TextEditingController();
-  double _freq = 14.225;
-  String _band = '20m';
-  String _mode = 'SSB';
+  late double _freq;
+  late String _band;
+  late String _mode;
   bool _parkConfigured = false;
 
   // Per-QSO fields
@@ -30,6 +30,16 @@ class _PotaActivatorPluginState extends State<PotaActivatorPlugin> {
   final _focusNode = FocusNode();
   int _count = 0;
   bool _lookingUp = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Carry forward last used band/mode/freq
+    final state = context.read<AppState>();
+    _freq = state.lastFreq;
+    _band = state.lastBand;
+    _mode = state.lastMode;
+  }
 
   @override
   void dispose() {

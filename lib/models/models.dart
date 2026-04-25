@@ -32,6 +32,7 @@ class QsoEntry {
   // Stores ALL extra ADIF fields: satellite name, prop mode, contest exchange, etc.
   Map<String, String> adifFields;
   double? distanceKm;
+  bool uploadedToQrz; // true once successfully uploaded to QRZ logbook
 
   QsoEntry({
     required this.id,
@@ -58,6 +59,7 @@ class QsoEntry {
     this.tags = const [],
     this.adifFields = const {},
     this.distanceKm,
+    this.uploadedToQrz = false,
   });
 
   // Convenience getters for common satellite / propagation fields
@@ -91,6 +93,7 @@ class QsoEntry {
       'tags': jsonEncode(tags),
       'adifFields': jsonEncode(adifFields),
       'distanceKm': distanceKm,
+      'uploadedToQrz': uploadedToQrz ? 1 : 0,
     };
   }
 
@@ -121,6 +124,7 @@ class QsoEntry {
       tags: map['tags'] != null ? List<String>.from(jsonDecode(map['tags'])) : [],
       adifFields: rawAdif != null ? Map<String, String>.from(jsonDecode(rawAdif)) : {},
       distanceKm: map['distanceKm'] != null ? (map['distanceKm'] as num).toDouble() : null,
+      uploadedToQrz: (map['uploadedToQrz'] ?? 0) == 1,
     );
   }
 }
@@ -183,20 +187,28 @@ class StationSettings {
 }
 
 class QrzSettings {
-  String username;
-  String password;
+  String username;  // used for XML callsign lookup login
+  String password;  // used for XML callsign lookup login
+  String apiKey;    // used for logbook upload API
   String? sessionKey;
 
-  QrzSettings({this.username = '', this.password = '', this.sessionKey});
+  QrzSettings({
+    this.username = '',
+    this.password = '',
+    this.apiKey = '',
+    this.sessionKey,
+  });
 
   Map<String, dynamic> toJson() => {
     'username': username,
     'password': password,
+    'apiKey': apiKey,
   };
 
   factory QrzSettings.fromJson(Map<String, dynamic> json) => QrzSettings(
     username: json['username'] ?? '',
     password: json['password'] ?? '',
+    apiKey: json['apiKey'] ?? '',
   );
 }
 
@@ -261,11 +273,14 @@ class PotaSpot {
   });
 
   factory PotaSpot.fromJson(Map<String, dynamic> json) {
+    // POTA API returns frequency in kHz — convert to MHz
+    final freqKhz = double.tryParse(json['frequency']?.toString() ?? '0') ?? 0;
+    final freqMhz = freqKhz >= 100 ? freqKhz / 1000.0 : freqKhz; // guard: if already MHz don't double-convert
     return PotaSpot(
       activatorCallsign: json['activator'] ?? '',
       parkReference: json['reference'] ?? '',
       parkName: json['name'] ?? '',
-      frequency: double.tryParse(json['frequency']?.toString() ?? '0') ?? 0,
+      frequency: freqMhz,
       mode: json['mode'] ?? '',
       comments: json['comments'] ?? '',
       grid: json['grid'] ?? '',

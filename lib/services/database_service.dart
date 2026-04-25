@@ -34,7 +34,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         await _createTable(db);
       },
@@ -47,7 +47,6 @@ class DatabaseService {
           }
         }
         if (oldVersion < 3) {
-          // Add my station columns
           for (final col in [
             'ALTER TABLE qsos ADD COLUMN myCallsign TEXT',
             'ALTER TABLE qsos ADD COLUMN myQth TEXT',
@@ -57,6 +56,11 @@ class DatabaseService {
           ]) {
             try { await db.execute(col); } catch (_) {}
           }
+        }
+        if (oldVersion < 4) {
+          try {
+            await db.execute('ALTER TABLE qsos ADD COLUMN uploadedToQrz INTEGER NOT NULL DEFAULT 0');
+          } catch (_) {}
         }
       },
     );
@@ -88,7 +92,8 @@ class DatabaseService {
         myPower REAL,
         tags TEXT,
         adifFields TEXT,
-        distanceKm REAL
+        distanceKm REAL,
+        uploadedToQrz INTEGER NOT NULL DEFAULT 0
       )
     ''');
   }

@@ -72,10 +72,13 @@ class CountryFlagWidget extends StatelessWidget {
     }
     return ClipRRect(
       borderRadius: BorderRadius.circular(3),
-      child: CountryFlag.fromCountryCode(
-        iso,
+      child: SizedBox(
         width: 32,
         height: 22,
+        child: FittedBox(
+          fit: BoxFit.fill,
+          child: CountryFlag.fromCountryCode(iso),
+        ),
       ),
     );
   }
