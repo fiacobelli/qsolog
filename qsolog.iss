@@ -1,13 +1,13 @@
 [Setup]
 AppName=QSOLog
 AppVersion=1.0.0
-AppPublisher=Your Name
-AppPublisherURL=https://yourwebsite.com
+AppPublisher=Francisco Iacobelli
+AppPublisherURL=https://buymeacoffee.com/fiacobelli
 DefaultDirName={autopf}\QSOLog
 DefaultGroupName=QSOLog
 OutputDir=.\installer
 OutputBaseFilename=QSOLogSetup
-Compression=lzma
+Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
 SetupIconFile=windows\runner\resources\app_icon.ico

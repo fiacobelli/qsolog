@@ -23,6 +23,10 @@ class _CwtPluginState extends State<CwtPlugin> {
   bool _lookingUp = false;
   int _count = 0;
   final _focusNode = FocusNode();
+  // Cached from QRZ lookup
+  double? _contactLat;
+  double? _contactLon;
+  String? _contactGrid;
 
   @override
   void initState() {
@@ -50,6 +54,9 @@ class _CwtPluginState extends State<CwtPlugin> {
       final data = await state.qrzService.lookupCallsign(call, state.qrzSettings);
       if (mounted && data != null) {
         _nameCtrl.text = data.name ?? '';
+        _contactLat = data.lat;
+        _contactLon = data.lon;
+        _contactGrid = data.grid;
       }
     }
     if (mounted) setState(() => _lookingUp = false);
@@ -79,10 +86,14 @@ class _CwtPluginState extends State<CwtPlugin> {
       comments: comments,
       dateTime: DateTime.now().toUtc(),
       contactName: namePart.isNotEmpty ? namePart : null,
+      contactGrid: _contactGrid,
+      contactLat: _contactLat,
+      contactLon: _contactLon,
       tags: ['CWT'],
       adifFields: {
         if (namePart.isNotEmpty) 'NAME': namePart,
         if (cwopsPart.isNotEmpty) 'CWOPS_NR': cwopsPart,
+        if (_contactGrid != null) 'GRIDSQUARE': _contactGrid!,
       },
     );
     await state.addQso(qso);
@@ -92,6 +103,9 @@ class _CwtPluginState extends State<CwtPlugin> {
         _callCtrl.clear();
         _nameCtrl.clear();
         _cwopsCtrl.clear();
+        _contactLat = null;
+        _contactLon = null;
+        _contactGrid = null;
       });
       _focusNode.requestFocus();
     }

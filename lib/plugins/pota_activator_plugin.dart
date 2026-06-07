@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../models/models.dart';
 import '../services/app_state.dart';
 import '../widgets/common_widgets.dart';
@@ -19,7 +21,7 @@ class _PotaActivatorPluginState extends State<PotaActivatorPlugin> {
   final _parkNameCtrl = TextEditingController();
   late double _freq;
   late String _band;
-  late String _mode;
+  String _mode = '';
   bool _parkConfigured = false;
 
   // Per-QSO fields
@@ -27,30 +29,61 @@ class _PotaActivatorPluginState extends State<PotaActivatorPlugin> {
   final _stateCtrl = TextEditingController();
   final _rstSentCtrl = TextEditingController(text: '59');
   final _rstRcvdCtrl = TextEditingController(text: '59');
+  final _p2pParkCtrl = TextEditingController();
   final _focusNode = FocusNode();
   int _count = 0;
   bool _lookingUp = false;
 
+  // Live POTA spots used for P2P auto-fill
+  List<PotaSpot> _p2pSpots = [];
+
   @override
   void initState() {
     super.initState();
-    // Carry forward last used band/mode/freq
     final state = context.read<AppState>();
     _freq = state.lastFreq;
     _band = state.lastBand;
-    _mode = state.lastMode;
+    // Intentionally no default mode — user must select one
   }
 
   @override
   void dispose() {
-    for (final c in [_parkCtrl, _parkNameCtrl, _callCtrl, _stateCtrl, _rstSentCtrl, _rstRcvdCtrl]) c.dispose();
+    for (final c in [
+      _parkCtrl, _parkNameCtrl, _callCtrl, _stateCtrl,
+      _rstSentCtrl, _rstRcvdCtrl, _p2pParkCtrl,
+    ]) c.dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchPotaSpots() async {
+    try {
+      final resp = await http.get(Uri.parse('https://api.pota.app/spot/activator'));
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body) as List;
+        if (mounted) {
+          setState(() {
+            _p2pSpots = data.map((e) => PotaSpot.fromJson(e)).toList();
+          });
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _lookupContact(String call) async {
     if (call.length < 3) return;
     setState(() => _lookingUp = true);
+
+    // Check live POTA spots for P2P auto-fill
+    final upperCall = call.toUpperCase().trim();
+    final match = _p2pSpots
+        .where((s) => s.activatorCallsign.toUpperCase() == upperCall)
+        .firstOrNull;
+    if (mounted) {
+      _p2pParkCtrl.text = match?.parkReference ?? '';
+    }
+
+    // QRZ lookup for state/name
     final state = context.read<AppState>();
     if (state.qrzSettings.username.isNotEmpty) {
       final data = await state.qrzService.lookupCallsign(call, state.qrzSettings);
@@ -58,12 +91,19 @@ class _PotaActivatorPluginState extends State<PotaActivatorPlugin> {
         _stateCtrl.text = data.state ?? _stateCtrl.text;
       }
     }
-    setState(() => _lookingUp = false);
+    if (mounted) setState(() => _lookingUp = false);
   }
 
   Future<void> _logQso() async {
     if (_callCtrl.text.trim().isEmpty) return;
+    if (_mode.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a mode before logging')),
+      );
+      return;
+    }
     final state = context.read<AppState>();
+    final p2pRef = _p2pParkCtrl.text.trim().toUpperCase();
 
     final qso = QsoEntry(
       id: const Uuid().v4(),
@@ -73,14 +113,17 @@ class _PotaActivatorPluginState extends State<PotaActivatorPlugin> {
       mode: _mode,
       rstSent: _rstSentCtrl.text,
       rstReceived: _rstRcvdCtrl.text,
-      comments: 'POTA Activating ${_parkCtrl.text}',
+      comments: p2pRef.isNotEmpty
+          ? 'POTA Activating ${_parkCtrl.text} — P2P $p2pRef'
+          : 'POTA Activating ${_parkCtrl.text}',
       dateTime: DateTime.now().toUtc(),
       contactState: _stateCtrl.text.isNotEmpty ? _stateCtrl.text : null,
       tags: ['POTA'],
       adifFields: {
-        'POTA_REF': _parkCtrl.text,
-        'PARK_NAME': _parkNameCtrl.text,
-        'MY_POTA_REF': _parkCtrl.text,
+        'MY_SIG': 'POTA',
+        'MY_SIG_INFO': _parkCtrl.text,
+        if (p2pRef.isNotEmpty) 'SIG': 'POTA',
+        if (p2pRef.isNotEmpty) 'SIG_INFO': p2pRef,
       },
     );
     await state.addQso(qso);
@@ -88,6 +131,7 @@ class _PotaActivatorPluginState extends State<PotaActivatorPlugin> {
       _count++;
       _callCtrl.clear();
       _stateCtrl.clear();
+      _p2pParkCtrl.clear();
       _rstSentCtrl.text = '59';
       _rstRcvdCtrl.text = '59';
     });
@@ -146,6 +190,7 @@ class _PotaActivatorPluginState extends State<PotaActivatorPlugin> {
               border: OutlineInputBorder(),
             ),
             textCapitalization: TextCapitalization.characters,
+            onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 12),
           TextField(
@@ -166,8 +211,11 @@ class _PotaActivatorPluginState extends State<PotaActivatorPlugin> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: _parkCtrl.text.isNotEmpty
-                  ? () => setState(() => _parkConfigured = true)
+              onPressed: _parkCtrl.text.isNotEmpty && _mode.isNotEmpty
+                  ? () {
+                      setState(() => _parkConfigured = true);
+                      _fetchPotaSpots();
+                    }
                   : null,
               icon: const Icon(Icons.hiking),
               label: const Text('Start Activation'),
@@ -248,6 +296,19 @@ class _PotaActivatorPluginState extends State<PotaActivatorPlugin> {
             decoration: const InputDecoration(
               labelText: 'Hunter State',
               border: OutlineInputBorder(),
+            ),
+            textCapitalization: TextCapitalization.characters,
+          ),
+          const SizedBox(height: 12),
+
+          // P2P park reference
+          TextField(
+            controller: _p2pParkCtrl,
+            decoration: const InputDecoration(
+              labelText: 'P2P Park Reference (optional)',
+              hintText: 'Auto-filled if contact is a POTA activator',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.park),
             ),
             textCapitalization: TextCapitalization.characters,
           ),

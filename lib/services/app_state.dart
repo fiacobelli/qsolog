@@ -91,7 +91,7 @@ class AppState extends ChangeNotifier {
     var result = qsos;
 
     // Parse special operators out of the search query
-    // Supported: after:YYYY-MM-DD  before:YYYY-MM-DD  band:20m  mode:SSB
+    // Supported: today  after:YYYY-MM-DD  before:YYYY-MM-DD  band:20m  mode:SSB
     // Everything else is a plain text search
     DateTime? afterDate;
     DateTime? beforeDate;
@@ -102,7 +102,11 @@ class AppState extends ChangeNotifier {
     if (searchQuery.isNotEmpty) {
       for (final token in searchQuery.trim().split(RegExp(r'\s+'))) {
         final lower = token.toLowerCase();
-        if (lower.startsWith('after:')) {
+        if (lower == 'today') {
+          final now = DateTime.now().toUtc();
+          afterDate = DateTime.utc(now.year, now.month, now.day);
+          beforeDate = afterDate.add(const Duration(days: 1));
+        } else if (lower.startsWith('after:')) {
           final raw = token.substring(6);
           afterDate = DateTime.tryParse(raw);
         } else if (lower.startsWith('before:')) {
@@ -176,7 +180,9 @@ class AppState extends ChangeNotifier {
     if (searchQuery.isEmpty) return ops;
     for (final token in searchQuery.trim().split(RegExp(r'\s+'))) {
       final lower = token.toLowerCase();
-      if (lower.startsWith('after:') || lower.startsWith('before:') ||
+      if (lower == 'today') {
+        ops['today'] = 'today';
+      } else if (lower.startsWith('after:') || lower.startsWith('before:') ||
           lower.startsWith('band:') || lower.startsWith('mode:')) {
         final colon = token.indexOf(':');
         ops[token.substring(0, colon).toLowerCase()] = token.substring(colon + 1);
@@ -260,6 +266,7 @@ class AppState extends ChangeNotifier {
       tags: qso.tags,
       adifFields: qso.adifFields,
       distanceKm: qso.distanceKm ?? _calcDistance(qso),
+      uploadedToQrz: qso.uploadedToQrz,
     );
 
     await DatabaseService.insertQso(stamped);

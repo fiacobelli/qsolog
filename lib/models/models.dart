@@ -260,6 +260,9 @@ class PotaSpot {
   final String comments;
   final String grid;
   final String state;
+  final double? lat;
+  final double? lon;
+  final DateTime? spotTime;
 
   PotaSpot({
     required this.activatorCallsign,
@@ -270,12 +273,15 @@ class PotaSpot {
     this.comments = '',
     this.grid = '',
     this.state = '',
+    this.lat,
+    this.lon,
+    this.spotTime,
   });
 
   factory PotaSpot.fromJson(Map<String, dynamic> json) {
     // POTA API returns frequency in kHz — convert to MHz
     final freqKhz = double.tryParse(json['frequency']?.toString() ?? '0') ?? 0;
-    final freqMhz = freqKhz >= 100 ? freqKhz / 1000.0 : freqKhz; // guard: if already MHz don't double-convert
+    final freqMhz = freqKhz >= 100 ? freqKhz / 1000.0 : freqKhz;
     return PotaSpot(
       activatorCallsign: json['activator'] ?? '',
       parkReference: json['reference'] ?? '',
@@ -285,6 +291,21 @@ class PotaSpot {
       comments: json['comments'] ?? '',
       grid: json['grid'] ?? '',
       state: json['locationDesc'] ?? '',
+      // lat/lon come from a separate park detail API call
+      lat: (json['latitude'] as num?)?.toDouble(),
+      lon: (json['longitude'] as num?)?.toDouble(),
+      spotTime: _parseSpotTime(json['spotTime']?.toString()),
     );
+  }
+
+  static DateTime? _parseSpotTime(String? s) {
+    if (s == null || s.isEmpty) return null;
+    try {
+      // POTA API returns times like "2024-01-15T14:30:00" (UTC, no Z suffix)
+      final normalized = (s.contains('Z') || s.contains('+')) ? s : '${s}Z';
+      return DateTime.parse(normalized).toUtc();
+    } catch (_) {
+      return null;
+    }
   }
 }

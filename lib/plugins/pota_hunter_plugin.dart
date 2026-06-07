@@ -19,12 +19,13 @@ class _PotaHunterPluginState extends State<PotaHunterPlugin> {
   bool _loading = true;
   String? _error;
   String _modeFilter = 'All';
+  String _bandFilter = 'All';
   String _searchQuery = '';
   final _searchCtrl = TextEditingController();
 
-  // All known POTA modes — built from spots dynamically + common ones
   static const _allModesLabel = 'All';
   final _availableModes = <String>[_allModesLabel];
+  final _availableBands = <String>[_allModesLabel];
 
   @override
   void initState() {
@@ -46,12 +47,25 @@ class _PotaHunterPluginState extends State<PotaHunterPlugin> {
         final data = jsonDecode(resp.body) as List;
         final spots = data.map((e) => PotaSpot.fromJson(e)).toList();
 
-        // Collect unique modes from live data
+        // Sort most recent first
+        spots.sort((a, b) {
+          if (a.spotTime == null && b.spotTime == null) return 0;
+          if (a.spotTime == null) return 1;
+          if (b.spotTime == null) return -1;
+          return b.spotTime!.compareTo(a.spotTime!);
+        });
+
+        // Collect unique modes and bands from live data
         final modes = <String>{};
+        final bands = <String>{};
         for (final s in spots) {
           if (s.mode.isNotEmpty) modes.add(s.mode.toUpperCase());
+          final band = BandFrequency.bandFromFrequency(s.frequency);
+          if (band.isNotEmpty) bands.add(band);
         }
         final sortedModes = modes.toList()..sort();
+        final sortedBands = bands.toList()
+          ..sort((a, b) => _bandSortKey(a).compareTo(_bandSortKey(b)));
 
         setState(() {
           _spots = spots;
@@ -60,10 +74,12 @@ class _PotaHunterPluginState extends State<PotaHunterPlugin> {
             ..clear()
             ..add(_allModesLabel)
             ..addAll(sortedModes);
-          // Reset filter if previously selected mode no longer exists
-          if (!_availableModes.contains(_modeFilter)) {
-            _modeFilter = _allModesLabel;
-          }
+          _availableBands
+            ..clear()
+            ..add(_allModesLabel)
+            ..addAll(sortedBands);
+          if (!_availableModes.contains(_modeFilter)) _modeFilter = _allModesLabel;
+          if (!_availableBands.contains(_bandFilter)) _bandFilter = _allModesLabel;
         });
       } else {
         setState(() { _error = 'Failed to load spots (${resp.statusCode})'; _loading = false; });
@@ -75,16 +91,30 @@ class _PotaHunterPluginState extends State<PotaHunterPlugin> {
 
   List<PotaSpot> get _filtered {
     return _spots.where((s) {
+      if (s.comments.toUpperCase().contains('QRT')) return false;
       final modeOk = _modeFilter == _allModesLabel ||
           s.mode.toUpperCase() == _modeFilter;
+      final bandOk = _bandFilter == _allModesLabel ||
+          BandFrequency.bandFromFrequency(s.frequency) == _bandFilter;
       final q = _searchQuery.toLowerCase();
       final searchOk = q.isEmpty ||
           s.activatorCallsign.toLowerCase().contains(q) ||
           s.parkReference.toLowerCase().contains(q) ||
           s.parkName.toLowerCase().contains(q) ||
           s.state.toLowerCase().contains(q);
-      return modeOk && searchOk;
+      return modeOk && bandOk && searchOk;
     }).toList();
+  }
+
+  // Sort bands by ascending center frequency
+  static int _bandSortKey(String band) {
+    const order = [
+      '2190m','630m','160m','80m','60m','40m','30m','20m',
+      '17m','15m','12m','10m','6m','4m','2m','1.25m',
+      '70cm','33cm','23cm',
+    ];
+    final i = order.indexOf(band);
+    return i == -1 ? 999 : i;
   }
 
   Color _modeColor(String mode) {
@@ -144,42 +174,27 @@ class _PotaHunterPluginState extends State<PotaHunterPlugin> {
 
           // Mode filter chips
           if (!_loading && _error == null)
-            SizedBox(
-              height: 44,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                children: _availableModes.map((mode) {
-                  final isSelected = _modeFilter == mode;
-                  final color = mode == _allModesLabel
-                      ? Colors.green.shade700
-                      : _modeColor(mode);
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: FilterChip(
-                      label: Text(
-                        mode,
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : null,
-                          fontSize: 12,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      ),
-                      selected: isSelected,
-                      selectedColor: color,
-                      checkmarkColor: Colors.white,
-                      onSelected: (_) => setState(() => _modeFilter = mode),
-                    ),
-                  );
-                }).toList(),
-              ),
+            _FilterRow(
+              items: _availableModes,
+              selected: _modeFilter,
+              colorOf: (m) => m == _allModesLabel ? Colors.green.shade700 : _modeColor(m),
+              onSelect: (m) => setState(() => _modeFilter = m),
+            ),
+
+          // Band filter chips
+          if (!_loading && _error == null)
+            _FilterRow(
+              items: _availableBands,
+              selected: _bandFilter,
+              colorOf: (_) => Colors.blueGrey.shade600,
+              onSelect: (b) => setState(() => _bandFilter = b),
             ),
 
           // Results count bar
           if (!_loading && _error == null)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
               child: Row(children: [
                 Text(
                   '${filtered.length} spot${filtered.length != 1 ? 's' : ''}',
@@ -190,17 +205,26 @@ class _PotaHunterPluginState extends State<PotaHunterPlugin> {
                   Text('· mode: $_modeFilter',
                       style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                 ],
+                if (_bandFilter != _allModesLabel) ...[
+                  const SizedBox(width: 6),
+                  Text('· band: $_bandFilter',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                ],
                 if (_searchQuery.isNotEmpty) ...[
                   const SizedBox(width: 6),
                   Text('· "$_searchQuery"',
                       style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                 ],
                 const Spacer(),
-                if (_modeFilter != _allModesLabel || _searchQuery.isNotEmpty)
+                if (_modeFilter != _allModesLabel || _bandFilter != _allModesLabel || _searchQuery.isNotEmpty)
                   TextButton(
                     onPressed: () {
                       _searchCtrl.clear();
-                      setState(() { _modeFilter = _allModesLabel; _searchQuery = ''; });
+                      setState(() {
+                        _modeFilter = _allModesLabel;
+                        _bandFilter = _allModesLabel;
+                        _searchQuery = '';
+                      });
                     },
                     child: const Text('Clear filters', style: TextStyle(fontSize: 12)),
                   ),
@@ -241,12 +265,16 @@ class _PotaHunterPluginState extends State<PotaHunterPlugin> {
                                       : 'No spots match your filters',
                                   style: const TextStyle(color: Colors.grey),
                                 ),
-                                if (_modeFilter != _allModesLabel || _searchQuery.isNotEmpty) ...[
+                                if (_modeFilter != _allModesLabel || _bandFilter != _allModesLabel || _searchQuery.isNotEmpty) ...[
                                   const SizedBox(height: 8),
                                   TextButton(
                                     onPressed: () {
                                       _searchCtrl.clear();
-                                      setState(() { _modeFilter = _allModesLabel; _searchQuery = ''; });
+                                      setState(() {
+                                        _modeFilter = _allModesLabel;
+                                        _bandFilter = _allModesLabel;
+                                        _searchQuery = '';
+                                      });
                                     },
                                     child: const Text('Clear filters'),
                                   ),
@@ -266,6 +294,60 @@ class _PotaHunterPluginState extends State<PotaHunterPlugin> {
                           ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+String _timeAgo(DateTime? t) {
+  if (t == null) return '';
+  final diff = DateTime.now().toUtc().difference(t);
+  if (diff.inMinutes < 1) return 'just now';
+  if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+  return '${diff.inHours}h ${diff.inMinutes % 60}m ago';
+}
+
+class _FilterRow extends StatelessWidget {
+  final List<String> items;
+  final String selected;
+  final Color Function(String) colorOf;
+  final void Function(String) onSelect;
+
+  const _FilterRow({
+    required this.items,
+    required this.selected,
+    required this.colorOf,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 40,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        children: items.map((item) {
+          final isSelected = selected == item;
+          final color = colorOf(item);
+          return Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: FilterChip(
+              label: Text(
+                item,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : null,
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+              selected: isSelected,
+              selectedColor: color,
+              checkmarkColor: Colors.white,
+              onSelected: (_) => onSelect(item),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -323,7 +405,7 @@ class _SpotTile extends StatelessWidget {
           Row(children: [
             const Icon(Icons.radio, size: 12, color: Colors.grey),
             const SizedBox(width: 3),
-            Text('${spot.frequency.toStringAsFixed(3)} MHz',
+            Text('${spot.frequency.toStringAsFixed(4)} MHz',
                 style: const TextStyle(fontSize: 12)),
             if (spot.state.isNotEmpty) ...[
               const SizedBox(width: 8),
@@ -331,6 +413,13 @@ class _SpotTile extends StatelessWidget {
               const SizedBox(width: 2),
               Text(spot.state,
                   style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            ],
+            if (spot.spotTime != null) ...[
+              const SizedBox(width: 8),
+              const Icon(Icons.access_time, size: 12, color: Colors.grey),
+              const SizedBox(width: 2),
+              Text(_timeAgo(spot.spotTime),
+                  style: const TextStyle(fontSize: 11, color: Colors.grey)),
             ],
             if (spot.comments.isNotEmpty) ...[
               const SizedBox(width: 8),
@@ -375,6 +464,11 @@ class _PotaContactFormState extends State<_PotaContactForm> {
   bool _logging = false;
   bool _lookingUpName = false;
 
+  // Coordinates and grid — from POTA park API first, QRZ as fallback
+  double? _contactLat;
+  double? _contactLon;
+  String? _contactGrid;
+
   @override
   void initState() {
     super.initState();
@@ -384,8 +478,48 @@ class _PotaContactFormState extends State<_PotaContactForm> {
     _freq = widget.spot.frequency;
     _band = BandFrequency.bandFromFrequency(_freq);
     _mode = widget.spot.mode;
-    // Auto-lookup the activator's name from QRZ
-    WidgetsBinding.instance.addPostFrameCallback((_) => _lookupActivatorName());
+
+    // Seed from spot — POTA API sometimes returns lat/lon in the spot
+    _contactLat = widget.spot.lat;
+    _contactLon = widget.spot.lon;
+    _contactGrid = widget.spot.grid.isNotEmpty ? widget.spot.grid : null;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => _init());
+  }
+
+  /// Fetch park details (lat/lon/grid) from POTA API, then fall back to QRZ
+  Future<void> _init() async {
+    // Step 1 — fetch park coordinates from POTA park detail API
+    if (_contactLat == null || _contactLon == null) {
+      await _fetchParkCoords();
+    }
+
+    // Step 2 — lookup activator name (and fallback coords) from QRZ
+    await _lookupActivatorName();
+  }
+
+  Future<void> _fetchParkCoords() async {
+    try {
+      final ref = widget.spot.parkReference;
+      final resp = await http.get(
+        Uri.parse('https://api.pota.app/park/$ref'),
+      ).timeout(const Duration(seconds: 10));
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body) as Map<String, dynamic>;
+        final lat = double.tryParse(data['latitude']?.toString() ?? '');
+        final lon = double.tryParse(data['longitude']?.toString() ?? '');
+        final grid = data['grid']?.toString() ?? '';
+        if (mounted) {
+          setState(() {
+            if (lat != null) _contactLat = lat;
+            if (lon != null) _contactLon = lon;
+            if (grid.isNotEmpty) _contactGrid = grid;
+          });
+        }
+      }
+    } catch (_) {
+      // silently ignore — will fall back to QRZ
+    }
   }
 
   Future<void> _lookupActivatorName() async {
@@ -394,8 +528,14 @@ class _PotaContactFormState extends State<_PotaContactForm> {
     setState(() => _lookingUpName = true);
     final data = await state.qrzService.lookupCallsign(
         widget.spot.activatorCallsign, state.qrzSettings);
-    if (mounted && data?.name != null) {
-      _nameCtrl.text = data!.name!;
+    if (mounted && data != null) {
+      _nameCtrl.text = data.name ?? '';
+      // Use QRZ coords only if POTA park API didn't provide them
+      if (_contactLat == null && data.lat != null) _contactLat = data.lat;
+      if (_contactLon == null && data.lon != null) _contactLon = data.lon;
+      if (_contactGrid == null && (data.grid?.isNotEmpty ?? false)) {
+        _contactGrid = data.grid;
+      }
     }
     if (mounted) setState(() => _lookingUpName = false);
   }
@@ -412,7 +552,6 @@ class _PotaContactFormState extends State<_PotaContactForm> {
     setState(() => _logging = true);
     final state = context.read<AppState>();
 
-    // Name already pre-filled from QRZ on init — no need to look up again
     final qso = QsoEntry(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       callsign: widget.spot.activatorCallsign.toUpperCase(),
@@ -424,12 +563,14 @@ class _PotaContactFormState extends State<_PotaContactForm> {
       comments: 'POTA ${widget.spot.parkReference} — ${widget.spot.parkName}',
       dateTime: DateTime.now().toUtc(),
       contactName: _nameCtrl.text.isNotEmpty ? _nameCtrl.text : null,
-      contactGrid: widget.spot.grid.isNotEmpty ? widget.spot.grid : null,
+      contactGrid: _contactGrid ?? (widget.spot.grid.isNotEmpty ? widget.spot.grid : null),
       contactState: widget.spot.state.isNotEmpty ? widget.spot.state : null,
+      contactLat: _contactLat,
+      contactLon: _contactLon,
       tags: ['POTA'],
       adifFields: {
-        'POTA_REF': widget.spot.parkReference,
-        'PARK_NAME': widget.spot.parkName,
+        'SIG': 'POTA',
+        'SIG_INFO': widget.spot.parkReference,
       },
     );
 
@@ -490,7 +631,7 @@ class _PotaContactFormState extends State<_PotaContactForm> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                          '${widget.spot.frequency.toStringAsFixed(3)} MHz',
+                          '${widget.spot.frequency.toStringAsFixed(4)} MHz',
                           style: const TextStyle(fontSize: 13)),
                       const SizedBox(width: 8),
                       Container(

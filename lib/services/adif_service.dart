@@ -3,172 +3,265 @@ import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import '../models/models.dart';
 
-// ADIF fields mapped to dedicated QsoEntry properties — not stored in adifFields
+/// ADIF fields that are mapped to dedicated QsoEntry properties.
+/// Everything else goes into / comes from adifFields map.
 const _mappedFields = {
-  'CALL', 'QSO_DATE', 'TIME_ON', 'BAND', 'FREQ', 'MODE',
-  'RST_SENT', 'RST_RCVD', 'NAME', 'QTH', 'GRIDSQUARE',
-  'COUNTRY', 'STATE', 'COMMENT', 'NOTES', 'APP_HAMLOG_TAGS',
-  'STATION_CALLSIGN', 'MY_GRIDSQUARE', 'TX_PWR', 'MY_CITY',
-  'ADIF_VER', 'PROGRAMID', 'EOH', 'EOR',
+  // Contact
+  'CALL', 'QSO_DATE', 'TIME_ON', 'TIME_OFF',
+  'BAND', 'FREQ', 'MODE', 'SUBMODE',
+  'RST_SENT', 'RST_RCVD',
+  'NAME', 'QTH', 'GRIDSQUARE', 'COUNTRY', 'STATE',
+  'LAT', 'LON',
+  'COMMENT', 'NOTES',
+  // My station
+  'STATION_CALLSIGN', 'OPERATOR',
+  'MY_GRIDSQUARE', 'MY_CITY', 'MY_STATE', 'MY_COUNTRY',
+  'MY_LAT', 'MY_LON',
+  'TX_PWR',
+  'MY_RIG',
+  // App internal
+  'APP_HAMLOG_TAGS', 'APP_QRZLOG_LOGID', 'APP_QRZLOG_QSOID',
+  // Header
+  'ADIF_VER', 'PROGRAMID', 'CREATED_TIMESTAMP', 'EOH', 'EOR',
 };
 
 class AdifService {
-  static String exportQsos(List<QsoEntry> qsos, StationSettings station,
-      {RigDefinition? rig}) {
+  // ── Export ─────────────────────────────────────────────────────────────
+
+  static String exportQsos(
+    List<QsoEntry> qsos,
+    StationSettings station, {
+    RigDefinition? rig,
+  }) {
     final buf = StringBuffer();
-    buf.writeln('QSOLog ADIF Export');
-    buf.writeln('Generated: ${DateTime.now().toUtc().toIso8601String()}');
-    buf.writeln('<ADIF_VER:5>3.1.4');
-    buf.writeln('<PROGRAMID:6>QSOLog');
+
+    // ADIF header
+    buf.writeln(_field('ADIF_VER', '3.1.4'));
+    buf.writeln(_field('PROGRAMID', 'QSOLog'));
+    buf.writeln(_field('CREATED_TIMESTAMP',
+        DateFormat('yyyyMMdd HHmmss').format(DateTime.now().toUtc())));
     buf.writeln('<EOH>');
     buf.writeln();
 
     for (final q in qsos) {
-      final dt = q.dateTime.toUtc();
+      final dt   = q.dateTime.toUtc();
       final date = DateFormat('yyyyMMdd').format(dt);
       final time = DateFormat('HHmmss').format(dt);
 
-      buf.write(_field('CALL', q.callsign));
+      // ── Mandatory fields ──────────────────────────────────────────────
+      buf.write(_field('CALL',     q.callsign));
       buf.write(_field('QSO_DATE', date));
-      buf.write(_field('TIME_ON', time));
-      buf.write(_field('BAND', q.band));
-      buf.write(_field('FREQ', q.frequency.toStringAsFixed(4)));
-      buf.write(_field('MODE', q.mode));
+      buf.write(_field('TIME_ON',  time));
+      buf.write(_field('BAND',     q.band));
+      buf.write(_field('FREQ',     q.frequency.toStringAsFixed(4)));
+      buf.write(_field('MODE',     q.mode));
       buf.write(_field('RST_SENT', q.rstSent));
       buf.write(_field('RST_RCVD', q.rstReceived));
 
-      // Contact info
-      if (q.contactName != null) buf.write(_field('NAME', q.contactName!));
-      if (q.contactQth != null) buf.write(_field('QTH', q.contactQth!));
-      if (q.contactGrid != null) buf.write(_field('GRIDSQUARE', q.contactGrid!));
-      if (q.contactCountry != null) buf.write(_field('COUNTRY', q.contactCountry!));
-      if (q.contactState != null) buf.write(_field('STATE', q.contactState!));
+      // ── Contact info ──────────────────────────────────────────────────
+      if (q.contactName    != null) buf.write(_field('NAME',       q.contactName!));
+      if (q.contactQth     != null) buf.write(_field('QTH',        q.contactQth!));
+      if (q.contactGrid    != null) buf.write(_field('GRIDSQUARE', q.contactGrid!));
+      if (q.contactCountry != null) buf.write(_field('COUNTRY',    q.contactCountry!));
+      if (q.contactState   != null) buf.write(_field('STATE',      q.contactState!));
+      if (q.contactLat     != null) buf.write(_field('LAT',  _fmtLatLon(q.contactLat!,  isLat: true)));
+      if (q.contactLon     != null) buf.write(_field('LON',  _fmtLatLon(q.contactLon!, isLat: false)));
 
-      // My station info — prefer per-QSO values, fall back to current settings
-      final myCall = q.myCallsign?.isNotEmpty == true ? q.myCallsign! : station.callsign;
-      final myGrid = q.myGrid?.isNotEmpty == true ? q.myGrid! : station.grid;
-      final myQth  = q.myQth?.isNotEmpty == true ? q.myQth! : station.qth;
-      final myPow  = q.myPower ?? rig?.power;
+      // ── My station info ───────────────────────────────────────────────
+      // Prefer per-QSO stamped values, fall back to current settings
+      final myCall  = _coalesce(q.myCallsign,  station.callsign);
+      final myGrid  = _coalesce(q.myGrid,      station.grid);
+      final myQth   = _coalesce(q.myQth,       station.qth);
+      final myRig   = _coalesce(q.myRig,       rig?.name);
+      final myPower = q.myPower ?? rig?.power;
 
-      if (myCall.isNotEmpty) buf.write(_field('STATION_CALLSIGN', myCall));
-      if (myGrid.isNotEmpty) buf.write(_field('MY_GRIDSQUARE', myGrid));
-      if (myQth.isNotEmpty)  buf.write(_field('MY_CITY', myQth));
-      if (myPow != null && myPow > 0) buf.write(_field('TX_PWR', myPow.toStringAsFixed(0)));
+      if (myCall  != null) buf.write(_field('STATION_CALLSIGN', myCall));
+      if (myGrid  != null) buf.write(_field('MY_GRIDSQUARE',    myGrid));
+      if (myQth   != null) buf.write(_field('MY_CITY',          myQth));
+      if (myRig   != null) buf.write(_field('MY_RIG',           myRig));
+      if (myPower != null && myPower > 0)
+        buf.write(_field('TX_PWR', myPower.toStringAsFixed(0)));
 
+      // Station lat/lon
+      if (station.lat != null)
+        buf.write(_field('MY_LAT', _fmtLatLon(station.lat!, isLat: true)));
+      if (station.lon != null)
+        buf.write(_field('MY_LON', _fmtLatLon(station.lon!, isLat: false)));
+
+      // ── Comments and tags ─────────────────────────────────────────────
       if (q.comments.isNotEmpty) buf.write(_field('COMMENT', q.comments));
-      if (q.tags.isNotEmpty) buf.write(_field('APP_HAMLOG_TAGS', q.tags.join(',')));
+      if (q.tags.isNotEmpty)
+        buf.write(_field('APP_HAMLOG_TAGS', q.tags.join(',')));
 
-      // All extra ADIF fields (satellite name, prop mode, contest exchange, etc.)
+      // ── Extra ADIF fields (POTA_REF, SOTA_REF, contest exchange, etc.) ─
       for (final entry in q.adifFields.entries) {
-        buf.write(_field(entry.key.toUpperCase(), entry.value));
+        final key = entry.key.toUpperCase();
+        // Skip any field already exported above to avoid duplicates
+        if (!_mappedFields.contains(key)) {
+          buf.write(_field(key, entry.value));
+        }
       }
 
       buf.writeln('<EOR>');
       buf.writeln();
     }
+
     return buf.toString();
   }
 
-  static String _field(String name, String value) {
-    return '<$name:${value.length}>$value ';
-  }
+  // ── Import ─────────────────────────────────────────────────────────────
 
   static List<QsoEntry> importAdif(String content) {
     final qsos = <QsoEntry>[];
     final uuid = const Uuid();
 
-    // Strip header before <EOH>
-    final eohIndex = content.toUpperCase().indexOf('<EOH>');
-    final body = eohIndex >= 0 ? content.substring(eohIndex + 5) : content;
+    // Strip everything before (and including) <EOH>
+    final eohIdx = content.toUpperCase().indexOf('<EOH>');
+    final body   = eohIdx >= 0 ? content.substring(eohIdx + 5) : content;
 
-    final records = body.split(RegExp(r'<EOR>', caseSensitive: false));
-
-    for (final record in records) {
+    for (final record in body.split(RegExp(r'<EOR>', caseSensitive: false))) {
       if (record.trim().isEmpty) continue;
 
-      final fields = _parseRecord(record);
-      if (!fields.containsKey('CALL')) continue;
+      final f = _parseRecord(record);
+      if (!f.containsKey('CALL')) continue;
 
-      final callsign = (fields['CALL'] ?? '').trim().toUpperCase();
+      final callsign = f['CALL']!.trim().toUpperCase();
       if (callsign.isEmpty) continue;
 
-      // Parse date/time as UTC
-      final dateStr = fields['QSO_DATE'] ?? '';
-      final timeStr = fields['TIME_ON'] ?? '000000';
+      // ── Date / time ──────────────────────────────────────────────────
+      final dateStr = f['QSO_DATE'] ?? '';
+      final timeStr = (f['TIME_ON'] ?? '000000').padRight(6, '0');
       DateTime dt;
       try {
         dt = DateTime.utc(
           int.parse(dateStr.substring(0, 4)),
           int.parse(dateStr.substring(4, 6)),
           int.parse(dateStr.substring(6, 8)),
-          int.tryParse(timeStr.length >= 2 ? timeStr.substring(0, 2) : '0') ?? 0,
-          int.tryParse(timeStr.length >= 4 ? timeStr.substring(2, 4) : '0') ?? 0,
+          int.parse(timeStr.substring(0, 2)),
+          int.parse(timeStr.substring(2, 4)),
+          int.parse(timeStr.substring(4, 6)),
         );
       } catch (_) {
         dt = DateTime.now().toUtc();
       }
 
-      final freqStr = fields['FREQ'] ?? '14.0';
-      final freq = double.tryParse(freqStr) ?? 14.0;
-      final band = fields['BAND'] ?? BandFrequency.bandFromFrequency(freq);
+      // ── Frequency / band ─────────────────────────────────────────────
+      final freq = double.tryParse(f['FREQ'] ?? '') ?? 14.0;
+      final band = f['BAND'] ?? BandFrequency.bandFromFrequency(freq);
 
-      final tagsStr = fields['APP_HAMLOG_TAGS'] ?? '';
-      final tags = tagsStr.isNotEmpty
+      // ── Contact coordinates ───────────────────────────────────────────
+      final contactLat = _parseAdifLatLon(f['LAT']);
+      final contactLon = _parseAdifLatLon(f['LON']);
+
+      // ── My station ────────────────────────────────────────────────────
+      final myCallsign = _nonEmpty(f['STATION_CALLSIGN'] ?? f['OPERATOR']);
+      final myGrid     = _nonEmpty(f['MY_GRIDSQUARE']);
+      final myQth      = _nonEmpty(f['MY_CITY']);
+      final myRig      = _nonEmpty(f['MY_RIG']);
+      final myPower    = double.tryParse(f['TX_PWR'] ?? '');
+
+      // ── Tags ──────────────────────────────────────────────────────────
+      final tagsStr = f['APP_HAMLOG_TAGS'] ?? '';
+      final tags    = tagsStr.isNotEmpty
           ? tagsStr.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList()
           : <String>[];
 
-      // Pull out my station info from the ADIF if present
-      // addQso() will fill in any blanks from current settings
-      final myCallsign = fields['STATION_CALLSIGN'];
-      final myGrid     = fields['MY_GRIDSQUARE'];
-      final myQth      = fields['MY_CITY'];
-      final myPower    = double.tryParse(fields['TX_PWR'] ?? '');
-
-      // Collect all remaining fields not mapped to dedicated properties
+      // ── Extra fields → adifFields ─────────────────────────────────────
       final adifFields = <String, String>{};
-      for (final entry in fields.entries) {
+      for (final entry in f.entries) {
         if (!_mappedFields.contains(entry.key)) {
           adifFields[entry.key] = entry.value;
         }
       }
 
       qsos.add(QsoEntry(
-        id: uuid.v4(),
-        callsign: callsign,
-        band: band,
-        frequency: freq,
-        mode: fields['MODE'] ?? 'SSB',
-        rstSent: fields['RST_SENT'] ?? '59',
-        rstReceived: fields['RST_RCVD'] ?? '59',
-        comments: fields['COMMENT'] ?? fields['NOTES'] ?? '',
-        dateTime: dt,
-        contactName: fields['NAME'],
-        contactQth: fields['QTH'],
-        contactGrid: fields['GRIDSQUARE'],
-        contactCountry: fields['COUNTRY'],
-        contactState: fields['STATE'],
-        myCallsign: myCallsign,
-        myGrid: myGrid,
-        myQth: myQth,
-        myPower: myPower,
-        tags: tags,
-        adifFields: adifFields,
+        id:              uuid.v4(),
+        callsign:        callsign,
+        band:            band,
+        frequency:       freq,
+        mode:            f['MODE'] ?? 'SSB',
+        rstSent:         f['RST_SENT'] ?? '59',
+        rstReceived:     f['RST_RCVD'] ?? '59',
+        comments:        f['COMMENT'] ?? f['NOTES'] ?? '',
+        dateTime:        dt,
+        contactName:     _nonEmpty(f['NAME']),
+        contactQth:      _nonEmpty(f['QTH']),
+        contactGrid:     _nonEmpty(f['GRIDSQUARE']),
+        contactCountry:  _nonEmpty(f['COUNTRY']),
+        contactState:    _nonEmpty(f['STATE']),
+        contactLat:      contactLat,
+        contactLon:      contactLon,
+        myCallsign:      myCallsign,
+        myGrid:          myGrid,
+        myQth:           myQth,
+        myRig:           myRig,
+        myPower:         myPower,
+        tags:            tags,
+        adifFields:      adifFields,
       ));
     }
+
     return qsos;
   }
 
-  // Parses a single ADIF record — keys uppercased, values keep original case
+  // ── Helpers ────────────────────────────────────────────────────────────
+
+  static String _field(String name, String value) {
+    if (value.isEmpty) return '';
+    return '<$name:${value.length}>$value ';
+  }
+
+  /// ADIF LAT/LON format: XDDD MM.MMM  where X = N/S/E/W
+  static String _fmtLatLon(double value, {required bool isLat}) {
+    final positive = value >= 0;
+    final abs = value.abs();
+    final deg = abs.floor();
+    final min = (abs - deg) * 60.0;
+    final hemi = isLat ? (positive ? 'N' : 'S') : (positive ? 'E' : 'W');
+    return '$hemi${deg.toString().padLeft(isLat ? 2 : 3, '0')} ${min.toStringAsFixed(3).padLeft(6, '0')}';
+  }
+
+  /// Parse ADIF LAT/LON format back to decimal degrees
+  static double? _parseAdifLatLon(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      final s = raw.trim();
+      final hemi = s[0].toUpperCase();
+      final rest = s.substring(1).trim();
+      final parts = rest.split(' ');
+      final deg = double.parse(parts[0]);
+      final min = parts.length > 1 ? double.parse(parts[1]) : 0.0;
+      final dec = deg + min / 60.0;
+      return (hemi == 'S' || hemi == 'W') ? -dec : dec;
+    } catch (_) {
+      // Try plain decimal fallback
+      return double.tryParse(raw.trim());
+    }
+  }
+
+  /// Returns the first non-null non-empty value
+  static String? _coalesce(String? a, [String? b]) {
+    if (a != null && a.isNotEmpty) return a;
+    if (b != null && b.isNotEmpty) return b;
+    return null;
+  }
+
+  static String? _nonEmpty(String? s) =>
+      (s != null && s.isNotEmpty) ? s : null;
+
+  /// Parse a single ADIF record into a field map (keys uppercased)
   static Map<String, String> _parseRecord(String record) {
     final result = <String, String>{};
-    final re = RegExp(r'<([^:>]+)(?::(\d+)(?::[^>]*)?)?>([^<]*)', caseSensitive: false);
+    final re = RegExp(
+        r'<([A-Za-z_][A-Za-z0-9_]*)(?::(\d+)(?::[A-Za-z])?)?>([^<]*)',
+        caseSensitive: false);
     for (final m in re.allMatches(record)) {
-      final name = m.group(1)?.toUpperCase() ?? '';
+      final name   = m.group(1)!.toUpperCase();
       final lenStr = m.group(2);
-      final rest = m.group(3) ?? '';
+      final rest   = m.group(3) ?? '';
       if (name == 'EOH' || name == 'EOR') continue;
-      final len = int.tryParse(lenStr ?? '');
-      final value = len != null && len <= rest.length
+      final len    = int.tryParse(lenStr ?? '');
+      final value  = (len != null && len <= rest.length)
           ? rest.substring(0, len)
           : rest.trim();
       if (value.isNotEmpty) result[name] = value;

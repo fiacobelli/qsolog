@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../models/models.dart';
 import '../services/app_state.dart';
-import '../services/qrz_service.dart';
 import '../widgets/common_widgets.dart';
 
 class AddQsoScreen extends StatefulWidget {
@@ -39,6 +38,7 @@ class _AddQsoScreenState extends State<AddQsoScreen> {
   late DateTime _qsoDateTime;
   bool _lookingUp = false;
   String? _lookupError;
+  double? _contactLat, _contactLon;
 
   @override
   void initState() {
@@ -61,6 +61,8 @@ class _AddQsoScreenState extends State<AddQsoScreen> {
     _band = q?.band ?? BandFrequency.bandFromFrequency(_freq);
     _mode = q?.mode ?? widget.prefilledMode ?? state.lastMode;
     _tags = q?.tags ?? List.from(widget.prefilledTags ?? []);
+    _contactLat = q?.contactLat;
+    _contactLon = q?.contactLon;
   }
 
   String _formatDateTime(DateTime dt) {
@@ -103,6 +105,8 @@ class _AddQsoScreenState extends State<AddQsoScreen> {
       _gridCtrl.text = data.grid ?? _gridCtrl.text;
       _countryCtrl.text = data.country ?? _countryCtrl.text;
       _stateCtrl.text = data.state ?? _stateCtrl.text;
+      _contactLat = data.lat;
+      _contactLon = data.lon;
     } else {
       setState(() => _lookupError = 'Not found on QRZ');
     }
@@ -133,15 +137,7 @@ class _AddQsoScreenState extends State<AddQsoScreen> {
     if (!_formKey.currentState!.validate()) return;
     final state = context.read<AppState>();
 
-    double? contactLat, contactLon, dist;
-    if (_callCtrl.text.isNotEmpty) {
-      final data = await state.qrzService.lookupCallsign(_callCtrl.text, state.qrzSettings);
-      if (data != null) {
-        contactLat = data.lat;
-        contactLon = data.lon;
-      }
-    }
-    dist = calculateDistance(state.station.lat, state.station.lon, contactLat, contactLon);
+    final dist = calculateDistance(state.station.lat, state.station.lon, _contactLat, _contactLon);
 
     final qso = QsoEntry(
       id: widget.existing?.id ?? const Uuid().v4(),
@@ -158,8 +154,8 @@ class _AddQsoScreenState extends State<AddQsoScreen> {
       contactGrid: _gridCtrl.text.isNotEmpty ? _gridCtrl.text : null,
       contactCountry: _countryCtrl.text.isNotEmpty ? _countryCtrl.text : null,
       contactState: _stateCtrl.text.isNotEmpty ? _stateCtrl.text : null,
-      contactLat: contactLat,
-      contactLon: contactLon,
+      contactLat: _contactLat,
+      contactLon: _contactLon,
       tags: _tags,
       adifFields: widget.prefilledExtra ?? widget.existing?.adifFields ?? {},
       distanceKm: dist,

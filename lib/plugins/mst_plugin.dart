@@ -26,6 +26,10 @@ class _MstPluginState extends State<MstPlugin> {
   int _serialSent = 1;   // auto-increments after each QSO
   int _count = 0;
   final _focusNode = FocusNode();
+  // Cached from QRZ lookup
+  double? _contactLat;
+  double? _contactLon;
+  String? _contactGrid;
 
   @override
   void initState() {
@@ -53,6 +57,9 @@ class _MstPluginState extends State<MstPlugin> {
       final data = await state.qrzService.lookupCallsign(call, state.qrzSettings);
       if (mounted && data != null) {
         _nameCtrl.text = data.name ?? '';
+        _contactLat = data.lat;
+        _contactLon = data.lon;
+        _contactGrid = data.grid;
       }
     }
     if (mounted) setState(() => _lookingUp = false);
@@ -81,11 +88,15 @@ class _MstPluginState extends State<MstPlugin> {
       comments: comments,
       dateTime: DateTime.now().toUtc(),
       contactName: namePart.isNotEmpty ? namePart : null,
+      contactGrid: _contactGrid,
+      contactLat: _contactLat,
+      contactLon: _contactLon,
       tags: ['MST'],
       adifFields: {
         'STX': '$_serialSent',
         if (rcvdSerial.isNotEmpty) 'SRX': rcvdSerial,
         if (namePart.isNotEmpty) 'NAME': namePart,
+        if (_contactGrid != null) 'GRIDSQUARE': _contactGrid!,
       },
     );
 
@@ -97,6 +108,9 @@ class _MstPluginState extends State<MstPlugin> {
         _callCtrl.clear();
         _nameCtrl.clear();
         _serialRcvdCtrl.clear();
+        _contactLat = null;
+        _contactLon = null;
+        _contactGrid = null;
       });
       _focusNode.requestFocus();
     }

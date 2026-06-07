@@ -7,7 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
-//import 'dart:typed_data';
+import 'dart:typed_data';
 import 'package:uuid/uuid.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/models.dart';
@@ -300,7 +300,6 @@ class _LogScreenState extends State<LogScreen> {
       return;
     }
 
-    // Upload either selected QSOs or all displayed unuploaded QSOs
     final candidates = state.selectedIds.isNotEmpty
         ? state.filteredQsos.where((q) => state.selectedIds.contains(q.id)).toList()
         : state.filteredQsos.where((q) => !q.uploadedToQrz).toList();
@@ -311,35 +310,155 @@ class _LogScreenState extends State<LogScreen> {
       return;
     }
 
-    // Show progress snackbar
+    // Show progress indicator
     ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Uploading ${candidates.length} QSO(s) to QRZ...')));
 
-    int uploaded = 0;
-    int failed = 0;
+    // Build full ADIF for all candidates
+    final adif = AdifService.exportQsos(candidates, state.station, rig: state.activeRig);
 
-    for (final qso in candidates) {
-      final adif = AdifService.exportQsos([qso], state.station, rig: state.activeRig);
-      final ok = await state.qrzService.uploadAdif(adif, state.qrzSettings);
-      if (ok) {
-        // Mark as uploaded in DB and in memory
-        qso.uploadedToQrz = true;
-        await DatabaseService.updateQso(qso);
-        uploaded++;
-      } else {
-        failed++;
-      }
+    int uploaded = 0;
+    await state.qrzService.uploadAdifPaginated(
+      adif,
+      state.qrzSettings,
+      onProgress: (done, total) => uploaded = done,
+    );
+
+    // Mark uploaded QSOs
+    for (final qso in candidates.take(uploaded)) {
+      qso.uploadedToQrz = true;
+      await DatabaseService.updateQso(qso);
     }
 
-    // Refresh list to show stars
     await state.loadQsos();
     if (state.selectedIds.isNotEmpty) state.clearSelection();
 
     if (context.mounted) {
+      final failed = candidates.length - uploaded;
       final msg = failed == 0
           ? 'Uploaded $uploaded QSO(s) to QRZ ★'
-          : 'Uploaded $uploaded QSO(s), $failed failed — check API key';
+          : 'Uploaded $uploaded, $failed failed — check API key';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    }
+  }
+
+  Future<void> _downloadFromQrz(BuildContext context) async {
+    final state = context.read<AppState>();
+    if (state.qrzSettings.apiKey.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Configure QRZ API key in Settings first')));
+      return;
+    }
+
+    // Use the date of the most recent local QSO as the FROM date
+    DateTime? afterDate;
+    if (state.qsos.isNotEmpty) {
+      final latest = state.qsos
+          .map((q) => q.dateTime.toUtc())
+          .reduce((a, b) => a.isAfter(b) ? a : b);
+      // Truncate to date only (midnight UTC) — BETWEEN is date-based
+      afterDate = DateTime.utc(latest.year, latest.month, latest.day);
+    }
+
+    final dateStr = afterDate != null
+        ? '${afterDate.year}-${afterDate.month.toString().padLeft(2,'0')}-${afterDate.day.toString().padLeft(2,'0')}'
+        : 'beginning';
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Downloading QSOs from QRZ from $dateStr onwards...'),
+        duration: const Duration(seconds: 5)));
+
+    int fetched = 0;
+    final result = await state.qrzService.fetchQsosSince(
+      state.qrzSettings,
+      afterDate,
+      onProgress: (n) => fetched = n,
+    );
+
+    if (!result.ok && result.records.isEmpty) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('QRZ download failed: ${result.error ?? "Unknown error"}'),
+            duration: const Duration(seconds: 6),
+          ));
+      return;
+    }
+
+    // Convert ADIF field maps to QsoEntry objects and save
+    int imported = 0, skipped = 0;
+    for (final fields in result.records) {
+      try {
+        final callsign = fields['CALL'] ?? '';
+        if (callsign.isEmpty) continue;
+
+        // Parse QSO date and time
+        DateTime dt = DateTime.now().toUtc();
+        if (fields.containsKey('QSO_DATE') && fields.containsKey('TIME_ON')) {
+          final d = fields['QSO_DATE']!;
+          final t = (fields['TIME_ON'] ?? '0000').padRight(6, '0');
+          dt = DateTime.utc(
+            int.parse(d.substring(0, 4)),
+            int.parse(d.substring(4, 6)),
+            int.parse(d.substring(6, 8)),
+            int.parse(t.substring(0, 2)),
+            int.parse(t.substring(2, 4)),
+          );
+        }
+
+        final freq = double.tryParse(fields['FREQ'] ?? '') ?? 0;
+        final band = fields['BAND'] ?? BandFrequency.bandFromFrequency(freq);
+
+        // Strip known fields, rest go to adifFields
+        const knownFields = {
+          'CALL', 'QSO_DATE', 'TIME_ON', 'FREQ', 'BAND', 'MODE',
+          'RST_SENT', 'RST_RCVD', 'COMMENT', 'COMMENTS', 'NAME',
+          'QTH', 'GRIDSQUARE', 'COUNTRY', 'STATE',
+          'STATION_CALLSIGN', 'MY_GRIDSQUARE',
+          'APP_QRZLOG_LOGID', 'APP_QRZLOG_QSOID',
+        };
+        final adifFields = Map<String, String>.fromEntries(
+            fields.entries.where((e) => !knownFields.contains(e.key)));
+
+        final qso = QsoEntry(
+          id: const Uuid().v4(),
+          callsign: callsign.toUpperCase(),
+          band: band,
+          frequency: freq,
+          mode: fields['MODE'] ?? 'SSB',
+          rstSent: fields['RST_SENT'] ?? '59',
+          rstReceived: fields['RST_RCVD'] ?? '59',
+          comments: fields['COMMENT'] ?? fields['COMMENTS'] ?? '',
+          dateTime: dt,
+          contactName: fields['NAME'],
+          contactQth: fields['QTH'],
+          contactGrid: fields['GRIDSQUARE'],
+          contactCountry: fields['COUNTRY'],
+          contactState: fields['STATE'],
+          myCallsign: fields['STATION_CALLSIGN'],
+          myGrid: fields['MY_GRIDSQUARE'],
+          adifFields: adifFields,
+          tags: [],
+          uploadedToQrz: true, // downloaded from QRZ → already there
+        );
+
+        final added = await state.addQso(qso);
+        if (added) imported++; else skipped++;
+      } catch (_) {
+        skipped++;
+      }
+    }
+
+    await state.loadQsos();
+
+    if (context.mounted) {
+      final parts = [
+        'Downloaded ${result.count} record(s) from QRZ',
+        if (imported > 0) 'imported $imported new',
+        if (skipped > 0) 'skipped $skipped duplicates',
+        if (!result.ok) 'some errors: ${result.error}',
+      ];
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(parts.join(' · '))));
     }
   }
 
@@ -397,6 +516,7 @@ class _LogScreenState extends State<LogScreen> {
             IconButton(icon: const Icon(Icons.upload_file), tooltip: 'Import ADIF', onPressed: () => _importAdif(context)),
             IconButton(icon: const Icon(Icons.table_chart), tooltip: 'Import CSV', onPressed: () => _importCsv(context)),
             IconButton(icon: const Icon(Icons.cloud_upload), tooltip: 'Upload to QRZ', onPressed: () => _uploadToQrz(context)),
+            IconButton(icon: const Icon(Icons.cloud_download), tooltip: 'Download from QRZ', onPressed: () => _downloadFromQrz(context)),
             PopupMenuButton(itemBuilder: (_) => [
               PopupMenuItem(child: const Text('Settings'),
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()))),
@@ -447,7 +567,7 @@ class _LogScreenState extends State<LogScreen> {
             child: TextField(
               controller: _searchCtrl,
               decoration: InputDecoration(
-                hintText: 'Search or use after:YYYY-MM-DD  band:20m  mode:SSB',
+                hintText: 'Search or use today  after:YYYY-MM-DD  before:YYYY-MM-DD  band:20m  mode:SSB',
                 hintStyle: const TextStyle(fontSize: 12),
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchCtrl.text.isNotEmpty
@@ -507,6 +627,18 @@ class _LogScreenState extends State<LogScreen> {
               )),
             ]),
           ),
+          // Filtered count — shown whenever a search or tag filter is active
+          if (state.searchQuery.isNotEmpty || state.filterTag != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  '${qsos.length} of ${state.qsos.length} QSO${qsos.length != 1 ? 's' : ''}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+              ),
+            ),
           // QSO list
           Expanded(
             child: state.isLoading

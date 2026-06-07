@@ -23,6 +23,10 @@ class _SstPluginState extends State<SstPlugin> {
   bool _lookingUp = false;
   int _count = 0;
   final _focusNode = FocusNode();
+  // Cached from QRZ lookup
+  double? _contactLat;
+  double? _contactLon;
+  String? _contactGrid;
 
   @override
   void initState() {
@@ -55,6 +59,9 @@ class _SstPluginState extends State<SstPlugin> {
     if (mounted && data != null) {
       _nameCtrl.text = data.name ?? '';
       _stateCtrl.text = data.state ?? '';
+      _contactLat = data.lat;
+      _contactLon = data.lon;
+      _contactGrid = data.grid;
     }
     if (mounted) setState(() => _lookingUp = false);
   }
@@ -75,10 +82,14 @@ class _SstPluginState extends State<SstPlugin> {
       dateTime: DateTime.now().toUtc(),
       contactName: _nameCtrl.text.isNotEmpty ? _nameCtrl.text : null,
       contactState: _stateCtrl.text.isNotEmpty ? _stateCtrl.text : null,
+      contactGrid: _contactGrid,
+      contactLat: _contactLat,
+      contactLon: _contactLon,
       tags: ['SST'],
       adifFields: {
         if (_nameCtrl.text.isNotEmpty) 'SST_NAME': _nameCtrl.text,
         if (_stateCtrl.text.isNotEmpty) 'SST_STATE': _stateCtrl.text,
+        if (_contactGrid != null) 'GRIDSQUARE': _contactGrid!,
       },
     );
     await state.addQso(qso);
@@ -88,6 +99,9 @@ class _SstPluginState extends State<SstPlugin> {
         _callCtrl.clear();
         _nameCtrl.clear();
         _stateCtrl.clear();
+        _contactLat = null;
+        _contactLon = null;
+        _contactGrid = null;
       });
       _focusNode.requestFocus();
     }

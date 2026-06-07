@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
 import '../models/models.dart';
 import '../services/app_state.dart';
 import '../app_themes.dart';
@@ -67,6 +68,7 @@ class _StationTab extends StatefulWidget {
 class _StationTabState extends State<_StationTab> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _callCtrl, _nameCtrl, _qthCtrl, _gridCtrl, _latCtrl, _lonCtrl;
+  bool _locating = false;
 
   @override
   void initState() {
@@ -84,6 +86,93 @@ class _StationTabState extends State<_StationTab> {
   void dispose() {
     for (final c in [_callCtrl, _nameCtrl, _qthCtrl, _gridCtrl, _latCtrl, _lonCtrl]) c.dispose();
     super.dispose();
+  }
+
+  Future<void> _useDeviceLocation() async {
+    setState(() => _locating = true);
+    try {
+      // Check if location services are enabled
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Location services are disabled. Please enable them in device settings.')));
+        setState(() => _locating = false);
+        return;
+      }
+
+      // Check and request permission
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Location permission denied.')));
+          setState(() => _locating = false);
+          return;
+        }
+      }
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Location permission permanently denied. Please enable in device settings.')));
+        setState(() => _locating = false);
+        return;
+      }
+
+      // Get position
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 15),
+        ),
+      );
+
+      // Convert lat/lon to Maidenhead grid square
+      final grid = _latLonToGrid(pos.latitude, pos.longitude);
+
+      if (mounted) {
+        setState(() {
+          _latCtrl.text = pos.latitude.toStringAsFixed(6);
+          _lonCtrl.text = pos.longitude.toStringAsFixed(6);
+          if (grid != null && _gridCtrl.text.isEmpty) {
+            _gridCtrl.text = grid;
+          }
+        });
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Location acquired: ${pos.latitude.toStringAsFixed(4)}, '
+                '${pos.longitude.toStringAsFixed(4)}'
+                '${grid != null ? ' ($grid)' : ''}')));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not get location: $e')));
+    } finally {
+      if (mounted) setState(() => _locating = false);
+    }
+  }
+
+  /// Convert latitude/longitude to a 6-character Maidenhead grid square
+  String? _latLonToGrid(double lat, double lon) {
+    try {
+      // Adjust to positive ranges
+      final adjLon = lon + 180.0;
+      final adjLat = lat + 90.0;
+
+      // Field (2 chars)
+      final fieldLon = String.fromCharCode(65 + (adjLon / 20).floor());
+      final fieldLat = String.fromCharCode(65 + (adjLat / 10).floor());
+
+      // Square (2 digits)
+      final squareLon = ((adjLon % 20) / 2).floor();
+      final squareLat = (adjLat % 10).floor();
+
+      // Subsquare (2 chars)
+      final subLon = String.fromCharCode(97 + ((adjLon % 2) / (2 / 24)).floor());
+      final subLat = String.fromCharCode(97 + ((adjLat % 1) / (1 / 24)).floor());
+
+      return '$fieldLon$fieldLat$squareLon$squareLat$subLon$subLat';
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _save() async {
@@ -150,7 +239,29 @@ class _StationTabState extends State<_StationTab> {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 10),
+            // Location services button
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _locating ? null : _useDeviceLocation,
+                icon: _locating
+                    ? const SizedBox(
+                        width: 16, height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.my_location),
+                label: Text(_locating
+                    ? 'Getting location...'
+                    : 'Use Device Location'),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Fills in your latitude and longitude automatically. '
+              'Also sets grid square if not already entered.',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 20),
             SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _save, child: const Text('Save Station Settings'))),
           ],
         ),

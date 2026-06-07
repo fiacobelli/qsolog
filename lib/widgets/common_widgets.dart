@@ -221,7 +221,8 @@ class _BandFrequencySelectorState extends State<BandFrequencySelector> {
         Expanded(
           flex: 2,
           child: DropdownButtonFormField<String>(
-            value: _modes.contains(_mode) ? _mode : _modes.first,
+            value: _mode.isEmpty ? null : (_modes.contains(_mode) ? _mode : null),
+            hint: const Text('Select Mode'),
             decoration: const InputDecoration(labelText: 'Mode', isDense: true),
             items: _modes.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
             onChanged: (v) {
