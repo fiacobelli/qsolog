@@ -19,11 +19,13 @@ class _MstPluginState extends State<MstPlugin> {
   final _callCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
   final _serialRcvdCtrl = TextEditingController();
+  late TextEditingController _serialSentCtrl;
   late double _freq;
   late String _band;
   late String _mode;
   bool _lookingUp = false;
   int _serialSent = 1;   // auto-increments after each QSO
+  bool _nameManuallyEdited = false;
   int _count = 0;
   final _focusNode = FocusNode();
   // Cached from QRZ lookup
@@ -38,6 +40,7 @@ class _MstPluginState extends State<MstPlugin> {
     _freq = state.lastFreq;
     _band = state.lastBand;
     _mode = state.lastMode;
+    _serialSentCtrl = TextEditingController(text: '1');
   }
 
   @override
@@ -45,6 +48,7 @@ class _MstPluginState extends State<MstPlugin> {
     _callCtrl.dispose();
     _nameCtrl.dispose();
     _serialRcvdCtrl.dispose();
+    _serialSentCtrl.dispose();
     _focusNode.dispose();
     super.dispose();
   }
@@ -56,7 +60,7 @@ class _MstPluginState extends State<MstPlugin> {
     if (state.qrzSettings.username.isNotEmpty) {
       final data = await state.qrzService.lookupCallsign(call, state.qrzSettings);
       if (mounted && data != null) {
-        _nameCtrl.text = data.name ?? '';
+        if (!_nameManuallyEdited) _nameCtrl.text = data.name ?? '';
         _contactLat = data.lat;
         _contactLon = data.lon;
         _contactGrid = data.grid;
@@ -71,9 +75,10 @@ class _MstPluginState extends State<MstPlugin> {
 
     final namePart = _nameCtrl.text.trim();
     final rcvdSerial = _serialRcvdCtrl.text.trim();
+    final sentSerial = int.tryParse(_serialSentCtrl.text.trim()) ?? _serialSent;
 
     // Exchange stored in comments: sent serial / received serial / name
-    final comments = 'MST - Sent: $_serialSent'
+    final comments = 'MST - Sent: $sentSerial'
         '${rcvdSerial.isNotEmpty ? ' / Rcvd: $rcvdSerial' : ''}'
         '${namePart.isNotEmpty ? ' / Name: $namePart' : ''}';
 
@@ -93,7 +98,7 @@ class _MstPluginState extends State<MstPlugin> {
       contactLon: _contactLon,
       tags: ['MST'],
       adifFields: {
-        'STX': '$_serialSent',
+        'STX': '$sentSerial',
         if (rcvdSerial.isNotEmpty) 'SRX': rcvdSerial,
         if (namePart.isNotEmpty) 'NAME': namePart,
         if (_contactGrid != null) 'GRIDSQUARE': _contactGrid!,
@@ -104,10 +109,12 @@ class _MstPluginState extends State<MstPlugin> {
     if (mounted) {
       setState(() {
         _count++;
-        _serialSent++;
+        _serialSent = sentSerial + 1;
+        _serialSentCtrl.text = '$_serialSent';
         _callCtrl.clear();
         _nameCtrl.clear();
         _serialRcvdCtrl.clear();
+        _nameManuallyEdited = false;
         _contactLat = null;
         _contactLon = null;
         _contactGrid = null;
@@ -129,7 +136,10 @@ class _MstPluginState extends State<MstPlugin> {
           ),
           TextButton(
             onPressed: () {
-              setState(() => _serialSent = 1);
+              setState(() {
+                _serialSent = 1;
+                _serialSentCtrl.text = '1';
+              });
               Navigator.pop(context);
             },
             child: const Text('Reset'),
@@ -233,52 +243,39 @@ class _MstPluginState extends State<MstPlugin> {
             ),
             const SizedBox(height: 12),
 
-            // Name (auto-filled from QRZ)
+            // Name (auto-filled from QRZ, manually overridable)
             TextField(
               controller: _nameCtrl,
               decoration: const InputDecoration(
                 labelText: 'Contact name',
                 border: OutlineInputBorder(),
-                helperText: 'Auto-filled from QRZ if available',
+                helperText: 'Auto-filled from QRZ — type to override',
               ),
+              onChanged: (_) => _nameManuallyEdited = true,
             ),
             const SizedBox(height: 12),
 
             // Serial numbers row
             Row(
               children: [
-                // Sent serial (read-only with reset button)
+                // Sent serial (editable, auto-increments)
                 Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade400),
-                      borderRadius: BorderRadius.circular(4),
+                  child: TextField(
+                    controller: _serialSentCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Serial sent',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.refresh, size: 20),
+                        tooltip: 'Reset to 1',
+                        onPressed: _resetSerial,
+                      ),
                     ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Serial sent',
-                                  style: TextStyle(
-                                      fontSize: 11, color: Colors.grey.shade600)),
-                              Text('$_serialSent',
-                                  style: const TextStyle(
-                                      fontSize: 22, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.refresh, size: 20),
-                          tooltip: 'Reset serial',
-                          onPressed: _resetSerial,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
-                      ],
-                    ),
+                    onChanged: (v) {
+                      final n = int.tryParse(v);
+                      if (n != null) _serialSent = n;
+                    },
                   ),
                 ),
                 const SizedBox(width: 12),
