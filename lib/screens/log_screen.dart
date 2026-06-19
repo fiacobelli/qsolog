@@ -517,7 +517,7 @@ class _LogScreenState extends State<LogScreen> {
             IconButton(icon: const Icon(Icons.table_chart), tooltip: 'Import CSV', onPressed: () => _importCsv(context)),
             IconButton(icon: const Icon(Icons.cloud_upload), tooltip: 'Upload to QRZ', onPressed: () => _uploadToQrz(context)),
             IconButton(icon: const Icon(Icons.cloud_download), tooltip: 'Download from QRZ', onPressed: () => _downloadFromQrz(context)),
-            PopupMenuButton(itemBuilder: (_) => [
+            PopupMenuButton<void>(itemBuilder: (_) => [
               PopupMenuItem(child: const Text('Settings'),
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()))),
               PopupMenuItem(child: const Text('Manage Tags'),
@@ -527,6 +527,16 @@ class _LogScreenState extends State<LogScreen> {
               PopupMenuItem(child: const Text('Map'),
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MapScreen()))),
               PopupMenuItem(child: const Text('Select by tag...'), onTap: () => _showSelectByTag(context)),
+              const PopupMenuDivider(),
+              PopupMenuItem(
+                child: const Row(children: [
+                  Icon(Icons.coffee, size: 18),
+                  SizedBox(width: 8),
+                  Text('Buy me a coffee'),
+                ]),
+                onTap: () => launchUrl(Uri.parse('https://buymeacoffee.com/fiacobelli'),
+                    mode: LaunchMode.externalApplication),
+              ),
             ]),
           ],
         ],
