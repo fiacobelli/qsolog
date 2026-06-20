@@ -21,6 +21,8 @@ Qith QSOLog you can:
 - Powerful search: You can search for QSOs using keywords like "today" or "after:2026-06-20" and combine this with tag, callsign and qth searches too.
 
 ---
+## Screenshot
+
 
 ## Features (for the more techy user)
 These were generated with AI.
