@@ -6,7 +6,8 @@ A feature rich ham radio contact logging application built with Flutter. Runs on
 #### Download [the latest release](https://github.com/fiacobelli/qsolog/releases) for your platform.
 
 ## What it is and what it is not
-QSOLog is an everyday logging software for amateur radio. It looks good on your PC, Mac or Phone. It is not intended for major contests, but for some of the regular activities of hams.
+QSOLog is an everyday logging software for amateur radio. It looks good on your PC, Mac or Phone. It is not intended for major contests, but for some of the regular activities of hams. That is, I did it for myself, thinking of what I do. If there's something else that you would like to see, let me know.
+
 Qith QSOLog you can:
 - Enter regular QSOs
 - Lookup people in QRZ
@@ -19,6 +20,7 @@ Qith QSOLog you can:
 - Manage multiple Rigs/Power levels
 - **Tags**!!! You can tag your QSOs as anything you like. For example, with an antenna type, a specific trip, rig, setup, reception, etc.
 - Powerful search: You can search for QSOs using keywords like "today" or "after:2026-06-20" and combine this with tag, callsign and qth searches too.
+- Sure. It has themes as well.
 
 ---
 ## Screenshot
@@ -76,7 +78,7 @@ Qith QSOLog you can:
 
 
 ## Features (for the more techy user)
-These were generated with AI.
+These features and following specs were generated with AI.
 
 ### Main Log Screen
 - All QSOs listed with country flag, callsign, name, location (QTH + state/province + country), band, mode, distance, and tags
