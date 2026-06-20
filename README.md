@@ -1,10 +1,29 @@
-# QSOLog - Ham Radio QSO Logger
+# QSOLog
+## Ham Radio QSO Logger
 
-A full-featured ham radio contact logging application built with Flutter. Runs on Windows, macOS, Linux, iOS, Android, and Web.
+A feature rich ham radio contact logging application built with Flutter. Runs on Windows, macOS, Linux, iOS, Android, and Web.
+
+#### Download [the latest release](https://github.com/fiacobelli/qsolog/releases) for your platform.
+
+## What it is and what it is not
+QSOLog is an everyday logging software for amateur radio. It looks good on your PC, Mac or Phone. It is not intended for major contests, but for some of the regular activities of hams.
+Qith QSOLog you can:
+- Enter regular QSOs
+- Lookup people in QRZ
+- Synch with your QRZ log (so that can be your master log)
+- Activate POTA
+- Hunt POTA
+- Participate in short contests/games like SST, MST or CWT. More like this can be on the way (like SKCC or Nets).
+- Export and import ADIF
+- See a map of your QSOs
+- Manage multiple Rigs/Power levels
+- **Tags**!!! You can tag your QSOs as anything you like. For example, with an antenna type, a specific trip, rig, setup, reception, etc.
+- Powerful search: You can search for QSOs using keywords like "today" or "after:2026-06-20" and combine this with tag, callsign and qth searches too.
 
 ---
 
-## Features
+## Features (for the more techy user)
+These were generated with AI.
 
 ### Main Log Screen
 - All QSOs listed with country flag, callsign, name, location (QTH + state/province + country), band, mode, distance, and tags
