@@ -23,14 +23,56 @@ Qith QSOLog you can:
 ---
 ## Screenshot
 #### Sample screenshots
-<img src="/images/qsolog_main.png" width="300" alt="Description">
-<img src="/images/qsolog_main_log.png" width="300" alt="Description">
-<img src="/images/qsolog_menu.png" width="300" alt="Description">
-<img src="/images/qsolog_pota_hunt.png" width="300" alt="Description">
-<img src="/images/qsolog_pota_activator.png" width="300" alt="Description">
-<img src="/images/qsolog_map.png" width="300" alt="Description">
-<img src="/images/qsolog_mst.png" width="300" alt="Description">
-<img src="/images/qsolog_stats.png" width="300" alt="Description">
+<table width="100%">
+  <tr>
+    <td width="50%" align="center">
+      <img src="/images/qsolog_main.png" width="300" alt="Main screen">
+      <br>
+      <sub><b>Caption 1:</b> Main Screen. Scrollable, Searchable.</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="/images/qsolog_main_log.png" width="300" alt="logging">
+      <br>
+      <sub><b>Caption 2:</b> Logging a regular QSO.</sub>
+    </td>
+  </tr>
+    <tr>
+    <td width="50%" align="center">
+      <img src="/images/qsolog_menu.png" width="300" alt="Menu">
+      <br>
+      <sub><b>Caption 1:</b> Menu to access additional functions and configuration.</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="/images/qsolog_map.png" width="300" alt="Map feature">
+      <br>
+      <sub><b>Caption 2:</b> Map of QSOs (sample feature).</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="/images/qsolog_pota_hunt.png" width="300" alt="Pota hunter">
+      <br>
+      <sub><b>Caption 1:</b>Quick POTA hunting session. Just tap log when QSOing.</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="/images/qsolog_pota_activator.png" width="300" alt="Description">
+      <br>
+      <sub><b>Caption 2:</b> If you feel like activating...</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="/images/qsolog_mst.png" width="300" alt="Description">
+      <br>
+      <sub><b>Caption 1:</b>Logging MST (sample of specific logging functionality).</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="/images/qsolog_stats.png" width="300" alt="Description">
+      <br>
+      <sub><b>Caption 2:</b> Want to know how you're doing, check the stats</sub>
+    </td>
+  </tr>
+</table>
 
 
 ## Features (for the more techy user)
