@@ -53,7 +53,7 @@ class AdifService {
       buf.write(_field('QSO_DATE', date));
       buf.write(_field('TIME_ON',  time));
       buf.write(_field('BAND',     q.band));
-      buf.write(_field('FREQ',     q.frequency.toStringAsFixed(4)));
+      buf.write(_field('FREQ',     q.frequency.toStringAsFixed(5)));
       buf.write(_field('MODE',     q.mode));
       buf.write(_field('RST_SENT', q.rstSent));
       buf.write(_field('RST_RCVD', q.rstReceived));

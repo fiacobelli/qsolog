@@ -405,7 +405,7 @@ class _SpotTile extends StatelessWidget {
           Row(children: [
             const Icon(Icons.radio, size: 12, color: Colors.grey),
             const SizedBox(width: 3),
-            Text('${spot.frequency.toStringAsFixed(4)} MHz',
+            Text('${spot.frequency.toStringAsFixed(5)} MHz',
                 style: const TextStyle(fontSize: 12)),
             if (spot.state.isNotEmpty) ...[
               const SizedBox(width: 8),
@@ -565,6 +565,7 @@ class _PotaContactFormState extends State<_PotaContactForm> {
       contactName: _nameCtrl.text.isNotEmpty ? _nameCtrl.text : null,
       contactGrid: _contactGrid ?? (widget.spot.grid.isNotEmpty ? widget.spot.grid : null),
       contactState: widget.spot.state.isNotEmpty ? widget.spot.state : null,
+      contactCountry: widget.spot.entity.isNotEmpty ? widget.spot.entity : null,
       contactLat: _contactLat,
       contactLon: _contactLon,
       tags: ['POTA'],
@@ -631,7 +632,7 @@ class _PotaContactFormState extends State<_PotaContactForm> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                          '${widget.spot.frequency.toStringAsFixed(4)} MHz',
+                          '${widget.spot.frequency.toStringAsFixed(5)} MHz',
                           style: const TextStyle(fontSize: 13)),
                       const SizedBox(width: 8),
                       Container(

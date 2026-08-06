@@ -23,6 +23,21 @@ class QrzCallsignData {
   });
 }
 
+/// Result from a paginated upload operation
+class QrzUploadResult {
+  final int uploaded;   // newly inserted
+  final int duplicates; // already existed on QRZ
+  final int failed;     // auth / network errors
+  final Set<int> onQrzIndices; // indices of candidates now confirmed on QRZ
+
+  QrzUploadResult({
+    required this.uploaded,
+    required this.duplicates,
+    required this.failed,
+    required this.onQrzIndices,
+  });
+}
+
 /// Result from a paginated FETCH operation
 class QrzFetchResult {
   final List<Map<String, String>> records; // each record is a map of ADIF field → value
@@ -189,15 +204,16 @@ class QrzService {
 
   /// Upload QSOs one record at a time (QRZ INSERT only processes the first
   /// record from a multi-record ADIF block). Returns count actually uploaded.
-  Future<int> uploadAdifPaginated(
+  Future<QrzUploadResult> uploadAdifPaginated(
     String adifContent,
     QrzSettings settings, {
-    void Function(int uploaded, int total)? onProgress,
+    void Function(int done, int total)? onProgress,
   }) async {
-    if (settings.apiKey.isEmpty) return 0;
+    if (settings.apiKey.isEmpty) {
+      return QrzUploadResult(uploaded: 0, duplicates: 0, failed: 0, onQrzIndices: {});
+    }
 
-    // Strip ADIF header (everything up to and including <EOH>) so the first
-    // split chunk isn't contaminated with header fields.
+    // Strip ADIF header (everything up to and including <EOH>)
     final eohIdx = adifContent.toUpperCase().indexOf('<EOH>');
     final body = eohIdx >= 0 ? adifContent.substring(eohIdx + 5) : adifContent;
 
@@ -207,28 +223,40 @@ class QrzService {
         .where((r) => r.isNotEmpty)
         .toList();
 
-    int uploaded = 0;
+    int uploaded = 0, duplicates = 0, failed = 0;
+    final onQrzIndices = <int>{};
     final total = records.length;
 
-    for (final record in records) {
+    for (int i = 0; i < records.length; i++) {
       try {
         final response = await http.post(
           Uri.parse(_apiBase),
           headers: {'User-Agent': 'QSOLog/1.0'},
-          body: {'KEY': settings.apiKey, 'ACTION': 'INSERT', 'ADIF': '$record<EOR>'},
+          body: {'KEY': settings.apiKey, 'ACTION': 'INSERT', 'ADIF': '${records[i]}<EOR>'},
         ).timeout(const Duration(seconds: 30));
-        if (response.body.contains('RESULT=OK')) {
+        final rb = response.body;
+        if (rb.contains('RESULT=OK')) {
           uploaded++;
+          onQrzIndices.add(i);
+        } else if (rb.toLowerCase().contains('duplicate')) {
+          duplicates++;
+          onQrzIndices.add(i); // already on QRZ — treat as uploaded
+        } else {
+          failed++;
         }
-      } catch (_) {}
-      onProgress?.call(uploaded, total);
+      } catch (_) {
+        failed++;
+      }
+      onProgress?.call(uploaded + duplicates + failed, total);
     }
-    return uploaded;
+    return QrzUploadResult(
+        uploaded: uploaded, duplicates: duplicates, failed: failed,
+        onQrzIndices: onQrzIndices);
   }
 
   Future<bool> uploadAdif(String adifContent, QrzSettings settings) async {
-    final uploaded = await uploadAdifPaginated(adifContent, settings);
-    return uploaded > 0;
+    final result = await uploadAdifPaginated(adifContent, settings);
+    return result.uploaded > 0;
   }
 
   // ── Download (paginated FETCH) ───────────────────────────────────────────

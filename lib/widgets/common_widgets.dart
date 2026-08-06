@@ -176,7 +176,7 @@ class _BandFrequencySelectorState extends State<BandFrequencySelector> {
   @override
   void initState() {
     super.initState();
-    _freqCtrl = TextEditingController(text: widget.initialFreq.toStringAsFixed(3));
+    _freqCtrl = TextEditingController(text: widget.initialFreq.toStringAsFixed(5));
     _band = widget.initialBand;
     _mode = widget.initialMode;
   }

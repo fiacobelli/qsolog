@@ -256,7 +256,7 @@ class _MapScreenState extends State<MapScreen> {
                       ]),
                       Text(
                           '${_selected!.band} · ${_selected!.mode} · '
-                          '${_selected!.frequency.toStringAsFixed(3)} MHz',
+                          '${_selected!.frequency.toStringAsFixed(5)} MHz',
                           style: const TextStyle(fontSize: 12)),
                     ],
                   ),

@@ -317,27 +317,33 @@ class _LogScreenState extends State<LogScreen> {
     // Build full ADIF for all candidates
     final adif = AdifService.exportQsos(candidates, state.station, rig: state.activeRig);
 
-    int uploaded = 0;
-    await state.qrzService.uploadAdifPaginated(
+    final result = await state.qrzService.uploadAdifPaginated(
       adif,
       state.qrzSettings,
-      onProgress: (done, total) => uploaded = done,
     );
 
-    // Mark uploaded QSOs
-    for (final qso in candidates.take(uploaded)) {
-      qso.uploadedToQrz = true;
-      await DatabaseService.updateQso(qso);
+    // Mark QSOs confirmed on QRZ (newly uploaded + duplicates already there)
+    for (int i = 0; i < candidates.length; i++) {
+      if (result.onQrzIndices.contains(i)) {
+        candidates[i].uploadedToQrz = true;
+        await DatabaseService.updateQso(candidates[i]);
+      }
     }
 
     await state.loadQsos();
     if (state.selectedIds.isNotEmpty) state.clearSelection();
 
     if (context.mounted) {
-      final failed = candidates.length - uploaded;
-      final msg = failed == 0
-          ? 'Uploaded $uploaded QSO(s) to QRZ ★'
-          : 'Uploaded $uploaded, $failed failed — check API key';
+      final String msg;
+      if (result.failed == 0 && result.duplicates == 0) {
+        msg = 'Uploaded ${result.uploaded} QSO(s) to QRZ ★';
+      } else if (result.failed == 0) {
+        msg = 'Uploaded ${result.uploaded}, ${result.duplicates} already on QRZ';
+      } else if (result.duplicates > 0) {
+        msg = 'Uploaded ${result.uploaded}, ${result.duplicates} already on QRZ, ${result.failed} failed — check API key';
+      } else {
+        msg = 'Uploaded ${result.uploaded}, ${result.failed} failed — check API key';
+      }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
@@ -864,7 +870,7 @@ class _QsoTile extends StatelessWidget {
                         style: TextStyle(
                             fontSize: 10, color: Colors.grey.shade600)),
                   const SizedBox(height: 2),
-                  Text('${qso.frequency.toStringAsFixed(3)}',
+                  Text('${qso.frequency.toStringAsFixed(5)}',
                       style: const TextStyle(fontSize: 10)),
                   Text('${qso.rstSent}/${qso.rstReceived}',
                       style: TextStyle(

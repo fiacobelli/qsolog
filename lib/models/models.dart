@@ -259,7 +259,10 @@ class PotaSpot {
   final String mode;
   final String comments;
   final String grid;
+  /// State/province code only — the part after the dash in locationDesc (e.g. "MA" from "US-MA")
   final String state;
+  /// Entity/country name from the POTA API (e.g. "United States of America")
+  final String entity;
   final double? lat;
   final double? lon;
   final DateTime? spotTime;
@@ -273,6 +276,7 @@ class PotaSpot {
     this.comments = '',
     this.grid = '',
     this.state = '',
+    this.entity = '',
     this.lat,
     this.lon,
     this.spotTime,
@@ -282,6 +286,7 @@ class PotaSpot {
     // POTA API returns frequency in kHz — convert to MHz
     final freqKhz = double.tryParse(json['frequency']?.toString() ?? '0') ?? 0;
     final freqMhz = freqKhz >= 100 ? freqKhz / 1000.0 : freqKhz;
+    final locationDesc = json['locationDesc']?.toString() ?? '';
     return PotaSpot(
       activatorCallsign: json['activator'] ?? '',
       parkReference: json['reference'] ?? '',
@@ -290,12 +295,19 @@ class PotaSpot {
       mode: json['mode'] ?? '',
       comments: json['comments'] ?? '',
       grid: json['grid'] ?? '',
-      state: json['locationDesc'] ?? '',
+      state: _stateFromLocation(locationDesc),
+      entity: json['entityName']?.toString() ?? '',
       // lat/lon come from a separate park detail API call
       lat: (json['latitude'] as num?)?.toDouble(),
       lon: (json['longitude'] as num?)?.toDouble(),
       spotTime: _parseSpotTime(json['spotTime']?.toString()),
     );
+  }
+
+  /// Extracts the state/province code from a location like "US-MA" → "MA".
+  static String _stateFromLocation(String location) {
+    final idx = location.indexOf('-');
+    return idx >= 0 ? location.substring(idx + 1) : location;
   }
 
   static DateTime? _parseSpotTime(String? s) {
