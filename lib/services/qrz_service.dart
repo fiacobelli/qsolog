@@ -29,12 +29,14 @@ class QrzUploadResult {
   final int duplicates; // already existed on QRZ
   final int failed;     // auth / network errors
   final Set<int> onQrzIndices; // indices of candidates now confirmed on QRZ
+  final String? firstError; // raw QRZ response or exception message for first failure
 
   QrzUploadResult({
     required this.uploaded,
     required this.duplicates,
     required this.failed,
     required this.onQrzIndices,
+    this.firstError,
   });
 }
 
@@ -226,6 +228,7 @@ class QrzService {
     int uploaded = 0, duplicates = 0, failed = 0;
     final onQrzIndices = <int>{};
     final total = records.length;
+    String? firstError;
 
     for (int i = 0; i < records.length; i++) {
       try {
@@ -243,15 +246,17 @@ class QrzService {
           onQrzIndices.add(i); // already on QRZ — treat as uploaded
         } else {
           failed++;
+          firstError ??= rb.length > 120 ? rb.substring(0, 120) : rb;
         }
-      } catch (_) {
+      } catch (e) {
         failed++;
+        firstError ??= e.toString();
       }
       onProgress?.call(uploaded + duplicates + failed, total);
     }
     return QrzUploadResult(
         uploaded: uploaded, duplicates: duplicates, failed: failed,
-        onQrzIndices: onQrzIndices);
+        onQrzIndices: onQrzIndices, firstError: firstError);
   }
 
   Future<bool> uploadAdif(String adifContent, QrzSettings settings) async {

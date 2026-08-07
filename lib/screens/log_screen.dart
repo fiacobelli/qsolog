@@ -334,17 +334,43 @@ class _LogScreenState extends State<LogScreen> {
     if (state.selectedIds.isNotEmpty) state.clearSelection();
 
     if (context.mounted) {
-      final String msg;
       if (result.failed == 0 && result.duplicates == 0) {
-        msg = 'Uploaded ${result.uploaded} QSO(s) to QRZ ★';
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Uploaded ${result.uploaded} QSO(s) to QRZ ★')));
       } else if (result.failed == 0) {
-        msg = 'Uploaded ${result.uploaded}, ${result.duplicates} already on QRZ';
-      } else if (result.duplicates > 0) {
-        msg = 'Uploaded ${result.uploaded}, ${result.duplicates} already on QRZ, ${result.failed} failed — check API key';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Uploaded ${result.uploaded}, ${result.duplicates} already on QRZ')));
       } else {
-        msg = 'Uploaded ${result.uploaded}, ${result.failed} failed — check API key';
+        // Show a dialog so the full error reason is readable
+        final dupeNote = result.duplicates > 0 ? ', ${result.duplicates} already on QRZ' : '';
+        final reason = result.firstError ?? 'unknown error';
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('QRZ upload incomplete'),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Uploaded: ${result.uploaded}$dupeNote\nFailed: ${result.failed}'),
+                  const SizedBox(height: 12),
+                  const Text('Reason for first failure:',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  SelectableText(reason,
+                      style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK')),
+            ],
+          ),
+        );
       }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
 
@@ -374,11 +400,9 @@ class _LogScreenState extends State<LogScreen> {
         content: Text('Downloading QSOs from QRZ from $dateStr onwards...'),
         duration: const Duration(seconds: 5)));
 
-    int fetched = 0;
     final result = await state.qrzService.fetchQsosSince(
       state.qrzSettings,
       afterDate,
-      onProgress: (n) => fetched = n,
     );
 
     if (!result.ok && result.records.isEmpty) {
@@ -552,7 +576,7 @@ class _LogScreenState extends State<LogScreen> {
         children: [
           // Plugin selector bar
           Container(
-            color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.4),
+            color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.4),
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -720,7 +744,7 @@ class _QsoTile extends StatelessWidget {
       onLongPress: () => state.toggleSelection(qso.id),
       child: Container(
         color: isSelected
-            ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
+            ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3)
             : null,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
