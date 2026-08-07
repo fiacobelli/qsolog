@@ -37,6 +37,9 @@ class _PotaActivatorPluginState extends State<PotaActivatorPlugin> {
   // Live POTA spots used for P2P auto-fill
   List<PotaSpot> _p2pSpots = [];
 
+  // Country/entity of the activated park, fetched from park detail API
+  String _parkEntity = '';
+
   @override
   void initState() {
     super.initState();
@@ -54,6 +57,23 @@ class _PotaActivatorPluginState extends State<PotaActivatorPlugin> {
     ]) c.dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchParkEntity() async {
+    try {
+      final ref = _parkCtrl.text.trim().toUpperCase();
+      if (ref.isEmpty) return;
+      final resp = await http.get(
+        Uri.parse('https://api.pota.app/park/$ref'),
+      ).timeout(const Duration(seconds: 10));
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body) as Map<String, dynamic>;
+        final entity = data['entity']?.toString() ?? '';
+        if (entity.isNotEmpty && mounted) {
+          setState(() => _parkEntity = entity);
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _fetchPotaSpots() async {
@@ -122,6 +142,7 @@ class _PotaActivatorPluginState extends State<PotaActivatorPlugin> {
       adifFields: {
         'MY_SIG': 'POTA',
         'MY_SIG_INFO': _parkCtrl.text,
+        if (_parkEntity.isNotEmpty) 'MY_COUNTRY': _parkEntity,
         if (p2pRef.isNotEmpty) 'SIG': 'POTA',
         if (p2pRef.isNotEmpty) 'SIG_INFO': p2pRef,
       },
@@ -215,6 +236,7 @@ class _PotaActivatorPluginState extends State<PotaActivatorPlugin> {
                   ? () {
                       setState(() => _parkConfigured = true);
                       _fetchPotaSpots();
+                      _fetchParkEntity();
                     }
                   : null,
               icon: const Icon(Icons.hiking),

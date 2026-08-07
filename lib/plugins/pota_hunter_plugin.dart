@@ -464,10 +464,11 @@ class _PotaContactFormState extends State<_PotaContactForm> {
   bool _logging = false;
   bool _lookingUpName = false;
 
-  // Coordinates and grid — from POTA park API first, QRZ as fallback
+  // Coordinates, grid, and country — from POTA park API first, QRZ as fallback
   double? _contactLat;
   double? _contactLon;
   String? _contactGrid;
+  String? _contactCountry;
 
   @override
   void initState() {
@@ -483,16 +484,16 @@ class _PotaContactFormState extends State<_PotaContactForm> {
     _contactLat = widget.spot.lat;
     _contactLon = widget.spot.lon;
     _contactGrid = widget.spot.grid.isNotEmpty ? widget.spot.grid : null;
+    // Seed country from spot list; park detail API may override with a richer value
+    _contactCountry = widget.spot.entity.isNotEmpty ? widget.spot.entity : null;
 
     WidgetsBinding.instance.addPostFrameCallback((_) => _init());
   }
 
-  /// Fetch park details (lat/lon/grid) from POTA API, then fall back to QRZ
+  /// Fetch park details (lat/lon/grid/entity) from POTA API, then fall back to QRZ
   Future<void> _init() async {
-    // Step 1 — fetch park coordinates from POTA park detail API
-    if (_contactLat == null || _contactLon == null) {
-      await _fetchParkCoords();
-    }
+    // Step 1 — fetch park detail from POTA API (always, to get entity/country)
+    await _fetchParkCoords();
 
     // Step 2 — lookup activator name (and fallback coords) from QRZ
     await _lookupActivatorName();
@@ -509,16 +510,18 @@ class _PotaContactFormState extends State<_PotaContactForm> {
         final lat = double.tryParse(data['latitude']?.toString() ?? '');
         final lon = double.tryParse(data['longitude']?.toString() ?? '');
         final grid = data['grid']?.toString() ?? '';
+        final entity = data['entity']?.toString() ?? '';
         if (mounted) {
           setState(() {
             if (lat != null) _contactLat = lat;
             if (lon != null) _contactLon = lon;
             if (grid.isNotEmpty) _contactGrid = grid;
+            if (entity.isNotEmpty) _contactCountry = entity;
           });
         }
       }
     } catch (_) {
-      // silently ignore — will fall back to QRZ
+      // silently ignore — will fall back to spot list entity
     }
   }
 
@@ -565,7 +568,7 @@ class _PotaContactFormState extends State<_PotaContactForm> {
       contactName: _nameCtrl.text.isNotEmpty ? _nameCtrl.text : null,
       contactGrid: _contactGrid ?? (widget.spot.grid.isNotEmpty ? widget.spot.grid : null),
       contactState: widget.spot.state.isNotEmpty ? widget.spot.state : null,
-      contactCountry: widget.spot.entity.isNotEmpty ? widget.spot.entity : null,
+      contactCountry: _contactCountry,
       contactLat: _contactLat,
       contactLon: _contactLon,
       tags: ['POTA'],
