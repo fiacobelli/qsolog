@@ -1,13 +1,10 @@
 // lib/screens/log_screen.dart
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:async';
-import 'dart:io';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:uuid/uuid.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/models.dart';
@@ -78,43 +75,28 @@ class _LogScreenState extends State<LogScreen> {
   Future<void> _exportAdif(BuildContext context) async {
     final state = context.read<AppState>();
     final content = AdifService.exportQsos(state.exportList, state.station, rig: state.activeRig);
-    if (kIsWeb) {
-      await showDialog(context: context, builder: (_) => AlertDialog(
-        title: const Text('ADIF Export'),
-        content: SizedBox(width: 500, height: 400,
-            child: SingleChildScrollView(child: SelectableText(content))),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
-      ));
-      return;
-    }
-    final path = await FilePicker.saveFile(
+    final uri = await FilePicker.saveFile(
       dialogTitle: 'Save ADIF',
       fileName: 'hamlog_${DateFormat('yyyyMMdd').format(DateTime.now())}.adi',
       allowedExtensions: ['adi', 'adif'],
       type: FileType.custom,
+      bytes: utf8.encoder.convert(content),
     );
-    if (path != null) {
-      await File(path).writeAsString(content);
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Exported ${state.exportList.length} QSOs to $path')));
+    if (uri != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Exported ${state.exportList.length} QSOs')));
     }
   }
 
   Future<void> _importCsv(BuildContext context) async {
-    final result = await FilePicker.pickFiles(
+    final file = await FilePicker.pickFile(
         type: FileType.custom,
-        allowedExtensions: ['csv'],
-        withData: kIsWeb);
-    if (result == null || result.files.isEmpty) return;
+        allowedExtensions: ['csv']);
+    if (file == null) return;
 
     String content;
     try {
-      late Uint8List bytes;
-      if (kIsWeb) {
-        bytes = result.files.first.bytes!;
-      } else {
-        bytes = await File(result.files.first.path!).readAsBytes();
-      }
+      final bytes = await file.readAsBytes();
       try { content = utf8.decode(bytes); }
       catch (_) { content = latin1.decode(bytes); }
     } catch (e) {
@@ -247,23 +229,15 @@ class _LogScreenState extends State<LogScreen> {
   }
 
   Future<void> _importAdif(BuildContext context) async {
-    final result = await FilePicker.pickFiles(
+    final file = await FilePicker.pickFile(
         type: FileType.custom,
-        allowedExtensions: ['adi', 'adif'],
-        withData: kIsWeb);
-    if (result == null || result.files.isEmpty) return;
+        allowedExtensions: ['adi', 'adif']);
+    if (file == null) return;
 
     String content;
     try {
-      // Always read as raw bytes first so we control the decoding
-      late Uint8List bytes;
-      if (kIsWeb) {
-        bytes = result.files.first.bytes!;
-      } else {
-        bytes = await File(result.files.first.path!).readAsBytes();
-      }
+      final bytes = await file.readAsBytes();
       // Try UTF-8 first; fall back to Latin-1 (covers ISO-8859-1 and Windows-1252)
-      // Most ham radio logging software writes Latin-1
       try {
         content = utf8.decode(bytes);
       } catch (_) {
