@@ -212,6 +212,17 @@ class QrzSettings {
   );
 }
 
+class CustomLink {
+  String name;
+  String url;
+  CustomLink({required this.name, required this.url});
+  Map<String, dynamic> toJson() => {'name': name, 'url': url};
+  factory CustomLink.fromJson(Map<String, dynamic> json) => CustomLink(
+    name: json['name']?.toString() ?? '',
+    url: json['url']?.toString() ?? '',
+  );
+}
+
 class TagDefinition {
   final String id;
   String name;

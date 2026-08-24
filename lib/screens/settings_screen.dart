@@ -18,7 +18,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 4, vsync: this);
+    _tabs = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -43,6 +43,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             Tab(icon: Icon(Icons.radio), text: 'Rig'),
             Tab(icon: Icon(Icons.cloud), text: 'QRZ'),
             Tab(icon: Icon(Icons.tune), text: 'Prefs'),
+            Tab(icon: Icon(Icons.link), text: 'Links'),
           ],
         ),
       ),
@@ -53,6 +54,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           _RigTab(),
           _QrzTab(),
           _PrefsTab(),
+          _LinksTab(),
         ],
       ),
     );
@@ -551,9 +553,9 @@ class _QrzTabState extends State<_QrzTab> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
+              border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -623,9 +625,9 @@ class _QrzTabState extends State<_QrzTab> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
+              border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -838,6 +840,178 @@ class _PrefsTabState extends State<_PrefsTab> {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ── Links tab ─────────────────────────────────────────────────────────────────
+
+class _LinksTab extends StatefulWidget {
+  const _LinksTab();
+  @override
+  State<_LinksTab> createState() => _LinksTabState();
+}
+
+class _LinksTabState extends State<_LinksTab> {
+  late List<CustomLink> _links;
+
+  @override
+  void initState() {
+    super.initState();
+    _links = List.from(context.read<AppState>().customLinks);
+  }
+
+  void _showDialog({int? index}) {
+    final existing = index != null ? _links[index] : null;
+    final nameCtrl = TextEditingController(text: existing?.name ?? '');
+    final urlCtrl = TextEditingController(text: existing?.url ?? '');
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(existing != null ? 'Edit Link' : 'Add Link'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Name',
+                hintText: 'e.g. QRZ.com',
+                border: OutlineInputBorder(),
+              ),
+              autofocus: true,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: urlCtrl,
+              decoration: const InputDecoration(
+                labelText: 'URL',
+                hintText: 'https://...',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.link),
+              ),
+              keyboardType: TextInputType.url,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final name = nameCtrl.text.trim();
+              final url = urlCtrl.text.trim();
+              if (name.isEmpty || url.isEmpty) return;
+              setState(() {
+                if (existing != null) {
+                  _links[index!] = CustomLink(name: name, url: url);
+                } else {
+                  _links.add(CustomLink(name: name, url: url));
+                }
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _save() async {
+    await context.read<AppState>().saveCustomLinks(_links);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Links saved')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: _links.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.link, size: 48, color: Colors.grey),
+                      const SizedBox(height: 12),
+                      const Text('No links configured yet'),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        onPressed: () => _showDialog(),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add Your First Link'),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: _links.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (_, i) {
+                    final link = _links[i];
+                    return Card(
+                      elevation: 1,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      child: ListTile(
+                        leading: const Icon(Icons.link),
+                        title: Text(link.name,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600)),
+                        subtitle: Text(link.url,
+                            style: const TextStyle(fontSize: 12),
+                            overflow: TextOverflow.ellipsis),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, size: 20),
+                              onPressed: () => _showDialog(index: i),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, size: 20),
+                              onPressed: () =>
+                                  setState(() => _links.removeAt(i)),
+                            ),
+                          ],
+                        ),
+                        onTap: () => _showDialog(index: i),
+                      ),
+                    );
+                  },
+                ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _showDialog(),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add Link'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _save,
+                  icon: const Icon(Icons.save),
+                  label: const Text('Save'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

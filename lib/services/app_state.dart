@@ -21,6 +21,7 @@ class AppState extends ChangeNotifier {
   String distanceUnit = 'km'; // 'km' or 'mi'
   int mapQsoCount = 10;
   String appTheme = 'default';
+  List<CustomLink> customLinks = [];
   final QrzService qrzService = QrzService();
 
   // Last used band/mode/freq — carried forward to new QSOs
@@ -39,6 +40,7 @@ class AppState extends ChangeNotifier {
     distanceUnit = await SettingsService.loadDistanceUnit();
     mapQsoCount = await SettingsService.loadMapQsoCount();
     appTheme = await SettingsService.loadAppTheme();
+    customLinks = await SettingsService.loadLinks();
     await loadQsos();
     // Seed last band/mode/freq from most recent QSO
     if (qsos.isNotEmpty) {
@@ -78,6 +80,12 @@ class AppState extends ChangeNotifier {
   Future<void> setAppTheme(String theme) async {
     appTheme = theme;
     await SettingsService.saveAppTheme(theme);
+    notifyListeners();
+  }
+
+  Future<void> saveCustomLinks(List<CustomLink> links) async {
+    customLinks = List.from(links);
+    await SettingsService.saveLinks(links);
     notifyListeners();
   }
 

@@ -17,6 +17,7 @@ import 'settings_screen.dart';
 import 'tags_screen.dart';
 import 'stats_screen.dart';
 import 'map_screen.dart';
+import 'quick_entry_screen.dart';
 import '../plugins/pota_hunter_plugin.dart';
 import '../plugins/sst_plugin.dart';
 import '../plugins/cwt_plugin.dart';
@@ -85,146 +86,6 @@ class _LogScreenState extends State<LogScreen> {
     if (uri != null && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Exported ${state.exportList.length} QSOs')));
-    }
-  }
-
-  Future<void> _importCsv(BuildContext context) async {
-    final file = await FilePicker.pickFile(
-        type: FileType.custom,
-        allowedExtensions: ['csv']);
-    if (file == null) return;
-
-    String content;
-    try {
-      final bytes = await file.readAsBytes();
-      try { content = utf8.decode(bytes); }
-      catch (_) { content = latin1.decode(bytes); }
-    } catch (e) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to read file: $e')));
-      return;
-    }
-
-    // Parse CSV — first row is ADIF field names, subsequent rows are values
-    final lines = content
-        .split('\n')
-        .map((l) => l.trim())
-        .where((l) => l.isNotEmpty)
-        .toList();
-
-    if (lines.length < 2) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('CSV must have a header row and at least one data row')));
-      return;
-    }
-
-    // Parse header — ADIF field names (case-insensitive)
-    final headers = lines.first
-        .split(',')
-        .map((h) => h.trim().toUpperCase())
-        .toList();
-
-    // Helper to split a CSV row respecting quoted fields
-    List<String> splitRow(String row) {
-      final fields = <String>[];
-      final buf = StringBuffer();
-      bool inQuotes = false;
-      for (int i = 0; i < row.length; i++) {
-        final c = row[i];
-        if (c == '"') {
-          inQuotes = !inQuotes;
-        } else if (c == ',' && !inQuotes) {
-          fields.add(buf.toString().trim());
-          buf.clear();
-        } else {
-          buf.write(c);
-        }
-      }
-      fields.add(buf.toString().trim());
-      return fields;
-    }
-
-    final state = context.read<AppState>();
-    int imported = 0, skipped = 0, errors = 0;
-
-    for (int i = 1; i < lines.length; i++) {
-      final values = splitRow(lines[i]);
-      if (values.length < headers.length) { errors++; continue; }
-
-      // Build a field map from header → value
-      final fields = <String, String>{};
-      for (int j = 0; j < headers.length; j++) {
-        if (j < values.length && values[j].isNotEmpty) {
-          fields[headers[j]] = values[j];
-        }
-      }
-
-      // Map known ADIF fields to QsoEntry fields
-      try {
-        final callsign = fields['CALL'] ?? fields['CALLSIGN'] ?? '';
-        if (callsign.isEmpty) { errors++; continue; }
-
-        // Parse date/time — ADIF uses YYYYMMDD and HHMM or HHMMSS
-        DateTime dt = DateTime.now().toUtc();
-        if (fields.containsKey('QSO_DATE') && fields.containsKey('TIME_ON')) {
-          final d = fields['QSO_DATE']!;
-          final t = fields['TIME_ON']!.padRight(6, '0');
-          dt = DateTime.utc(
-            int.parse(d.substring(0, 4)),
-            int.parse(d.substring(4, 6)),
-            int.parse(d.substring(6, 8)),
-            int.parse(t.substring(0, 2)),
-            int.parse(t.substring(2, 4)),
-          );
-        }
-
-        final freq = double.tryParse(fields['FREQ'] ?? '') ?? 0;
-        final band = fields['BAND'] ?? BandFrequency.bandFromFrequency(freq);
-        final mode = fields['MODE'] ?? 'SSB';
-
-        // Everything not mapped to a known field goes into adifFields
-        final knownFields = {
-          'CALL', 'CALLSIGN', 'QSO_DATE', 'TIME_ON', 'FREQ', 'BAND',
-          'MODE', 'RST_SENT', 'RST_RCVD', 'COMMENT', 'COMMENTS', 'NAME',
-          'QTH', 'GRIDSQUARE', 'COUNTRY', 'STATE',
-        };
-        final adifFields = Map<String, String>.fromEntries(
-            fields.entries.where((e) => !knownFields.contains(e.key)));
-
-        final qso = QsoEntry(
-          id: const Uuid().v4(),
-          callsign: callsign.toUpperCase(),
-          band: band,
-          frequency: freq,
-          mode: mode,
-          rstSent: fields['RST_SENT'] ?? '59',
-          rstReceived: fields['RST_RCVD'] ?? '59',
-          comments: fields['COMMENT'] ?? fields['COMMENTS'] ?? '',
-          dateTime: dt,
-          contactName: fields['NAME'],
-          contactQth: fields['QTH'],
-          contactGrid: fields['GRIDSQUARE'],
-          contactCountry: fields['COUNTRY'],
-          contactState: fields['STATE'],
-          adifFields: adifFields,
-          tags: [],
-        );
-
-        final added = await state.addQso(qso);
-        if (added) imported++; else skipped++;
-      } catch (_) {
-        errors++;
-      }
-    }
-
-    if (context.mounted) {
-      final parts = [
-        'Imported $imported QSOs',
-        if (skipped > 0) 'skipped $skipped duplicates',
-        if (errors > 0) '$errors errors',
-      ];
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(parts.join(', '))));
     }
   }
 
@@ -466,16 +327,6 @@ class _LogScreenState extends State<LogScreen> {
     }
   }
 
-  void _showSelectByTag(BuildContext context) {
-    final state = context.read<AppState>();
-    showDialog(context: context, builder: (_) => SimpleDialog(
-      title: const Text('Select QSOs by tag'),
-      children: state.tags.map((t) => SimpleDialogOption(
-        child: Text(t.name),
-        onPressed: () { Navigator.pop(context); state.selectByTag(t.name); },
-      )).toList(),
-    ));
-  }
 
   Future<void> _deleteSelected(BuildContext context) async {
     final state = context.read<AppState>();
@@ -510,27 +361,45 @@ class _LogScreenState extends State<LogScreen> {
         actions: [
           if (hasSelection) ...[
             IconButton(icon: const Icon(Icons.upload), tooltip: 'Upload to QRZ', onPressed: () => _uploadToQrz(context)),
-            IconButton(icon: const Icon(Icons.download), tooltip: 'Export ADIF', onPressed: () => _exportAdif(context)),
-            PopupMenuButton(itemBuilder: (_) => [
-              PopupMenuItem(child: const Text('Select by tag...'), onTap: () => _showSelectByTag(context)),
+            PopupMenuButton<void>(itemBuilder: (_) => [
+              PopupMenuItem(child: const Text('Export Selected ADIF'), onTap: () => _exportAdif(context)),
               PopupMenuItem(child: const Text('Delete selected'), onTap: () => _deleteSelected(context)),
             ]),
           ] else ...[
-            IconButton(icon: const Icon(Icons.download), tooltip: 'Export ADIF', onPressed: () => _exportAdif(context)),
-            IconButton(icon: const Icon(Icons.upload_file), tooltip: 'Import ADIF', onPressed: () => _importAdif(context)),
-            IconButton(icon: const Icon(Icons.table_chart), tooltip: 'Import CSV', onPressed: () => _importCsv(context)),
+            IconButton(icon: const Icon(Icons.bar_chart), tooltip: 'Statistics', onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StatsScreen()))),
+            IconButton(icon: const Icon(Icons.map_outlined), tooltip: 'Map', onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MapScreen()))),
             IconButton(icon: const Icon(Icons.cloud_upload), tooltip: 'Upload to QRZ', onPressed: () => _uploadToQrz(context)),
             IconButton(icon: const Icon(Icons.cloud_download), tooltip: 'Download from QRZ', onPressed: () => _downloadFromQrz(context)),
             PopupMenuButton<void>(itemBuilder: (_) => [
+              PopupMenuItem(
+                child: const Row(children: [
+                  Icon(Icons.edit_note, size: 18),
+                  SizedBox(width: 10),
+                  Text('Quick Entry'),
+                ]),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QuickEntryScreen())),
+              ),
+              PopupMenuItem(
+                child: const Row(children: [
+                  Icon(Icons.upload_file, size: 18),
+                  SizedBox(width: 10),
+                  Text('Import ADIF'),
+                ]),
+                onTap: () => _importAdif(context),
+              ),
+              PopupMenuItem(
+                child: const Row(children: [
+                  Icon(Icons.download, size: 18),
+                  SizedBox(width: 10),
+                  Text('Export Selected ADIF'),
+                ]),
+                onTap: () => _exportAdif(context),
+              ),
+              const PopupMenuDivider(),
               PopupMenuItem(child: const Text('Settings'),
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()))),
               PopupMenuItem(child: const Text('Manage Tags'),
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TagsScreen()))),
-              PopupMenuItem(child: const Text('Statistics'),
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StatsScreen()))),
-              PopupMenuItem(child: const Text('Map'),
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MapScreen()))),
-              PopupMenuItem(child: const Text('Select by tag...'), onTap: () => _showSelectByTag(context)),
               const PopupMenuDivider(),
               PopupMenuItem(
                 child: const Row(children: [
@@ -541,6 +410,20 @@ class _LogScreenState extends State<LogScreen> {
                 onTap: () => launchUrl(Uri.parse('https://buymeacoffee.com/fiacobelli'),
                     mode: LaunchMode.externalApplication),
               ),
+              if (state.customLinks.isNotEmpty) ...[
+                const PopupMenuDivider(),
+                ...state.customLinks.map((link) => PopupMenuItem<void>(
+                  child: Row(children: [
+                    const Icon(Icons.open_in_browser, size: 18),
+                    const SizedBox(width: 10),
+                    Text(link.name),
+                  ]),
+                  onTap: () => launchUrl(
+                    Uri.parse(link.url),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                )),
+              ],
             ]),
           ],
         ],

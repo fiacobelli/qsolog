@@ -95,7 +95,7 @@ class _StatsScreenState extends State<StatsScreen> {
     double? longestDist;
     String? longestCall;
     for (final q in streakQsos) {
-      if (q.distanceKm != null && (longestDist == null || q.distanceKm! > longestDist!)) {
+      if (q.distanceKm != null && (longestDist == null || q.distanceKm! > longestDist)) {
         longestDist = q.distanceKm;
         longestCall = q.callsign;
       }
@@ -163,6 +163,35 @@ class _StatsScreenState extends State<StatsScreen> {
     final sortedBands = bandCounts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
+    final uniqueCallsigns =
+        qsos.map((q) => q.callsign.toUpperCase()).toSet().length;
+    final uniqueStates = qsos
+        .where((q) => q.contactState?.trim().isNotEmpty == true)
+        .map((q) => q.contactState!.trim().toUpperCase())
+        .toSet()
+        .length;
+    final uniqueEntities = qsos
+        .where((q) => q.contactCountry?.trim().isNotEmpty == true)
+        .map((q) => q.contactCountry!.trim().toLowerCase())
+        .toSet()
+        .length;
+
+    final modeCounts = <String, int>{};
+    for (final q in qsos) {
+      final m = q.mode.trim().isNotEmpty ? q.mode.trim() : 'Unknown';
+      modeCounts[m] = (modeCounts[m] ?? 0) + 1;
+    }
+    final sortedModes = modeCounts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final rigCounts = <String, int>{};
+    for (final q in qsos) {
+      final r = q.myRig?.trim();
+      if (r != null && r.isNotEmpty) {
+        rigCounts[r] = (rigCounts[r] ?? 0) + 1;
+      }
+    }
+
     // Streak (always computed on all QSOs — streak is an absolute concept)
     final streak = _calcStreak(allQsos);
     final streakDays = streak['streak'] as int;
@@ -174,7 +203,7 @@ class _StatsScreenState extends State<StatsScreen> {
     double? longestDist;
     String? longestCall;
     for (final q in qsos) {
-      if (q.distanceKm != null && (longestDist == null || q.distanceKm! > longestDist!)) {
+      if (q.distanceKm != null && (longestDist == null || q.distanceKm! > longestDist)) {
         longestDist = q.distanceKm;
         longestCall = q.callsign;
       }
@@ -283,7 +312,7 @@ class _StatsScreenState extends State<StatsScreen> {
               if (longestDist != null) ...[
                 const Spacer(),
                 Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                  Text(state.formatDistance(longestDist!),
+                  Text(state.formatDistance(longestDist),
                       style: TextStyle(
                           fontWeight: FontWeight.bold, fontSize: 16,
                           color: Theme.of(context).colorScheme.secondary)),
@@ -292,6 +321,33 @@ class _StatsScreenState extends State<StatsScreen> {
                 ]),
               ],
             ]),
+          ),
+          const SizedBox(height: 12),
+
+          // ── Unique summary row ────────────────────────────────────────
+          _StatCard(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _MiniStat(
+                  icon: Icons.people_outline,
+                  label: 'Unique Calls',
+                  value: '$uniqueCallsigns',
+                ),
+                const _VertDivider(),
+                _MiniStat(
+                  icon: Icons.map_outlined,
+                  label: 'States',
+                  value: '$uniqueStates',
+                ),
+                const _VertDivider(),
+                _MiniStat(
+                  icon: Icons.public,
+                  label: 'Entities',
+                  value: '$uniqueEntities',
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
 
@@ -426,6 +482,40 @@ class _StatsScreenState extends State<StatsScreen> {
           ),
           const SizedBox(height: 16),
 
+          // ── QSOs by mode ─────────────────────────────────────────────
+          if (sortedModes.isNotEmpty) ...[
+            _SectionHeader(title: 'QSOs by Mode', icon: Icons.tune),
+            _StatCard(
+              child: Column(
+                children: sortedModes.map((e) => _BarRow(
+                  label: e.key,
+                  count: e.value,
+                  total: total,
+                  color: Theme.of(context).colorScheme.tertiary,
+                )).toList(),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // ── QSOs by rig ───────────────────────────────────────────────
+          if (rigCounts.isNotEmpty) ...[
+            _SectionHeader(title: 'QSOs by Rig', icon: Icons.settings_input_antenna),
+            _StatCard(
+              child: Column(
+                children: (rigCounts.entries.toList()
+                  ..sort((a, b) => b.value.compareTo(a.value)))
+                    .map((e) => _BarRow(
+                      label: e.key,
+                      count: e.value,
+                      total: total,
+                      color: Theme.of(context).colorScheme.secondary,
+                    )).toList(),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
           // ── QSOs by country ───────────────────────────────────────────
           if (sortedCountries.isNotEmpty) ...[
             _SectionHeader(title: 'QSOs by Country', icon: Icons.flag),
@@ -502,6 +592,44 @@ class _SectionHeader extends StatelessWidget {
             fontWeight: FontWeight.bold, fontSize: 14,
             color: Theme.of(context).colorScheme.primary)),
       ]),
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _MiniStat(
+      {required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.primary;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 20, color: color),
+        const SizedBox(height: 4),
+        Text(value,
+            style: TextStyle(
+                fontSize: 22, fontWeight: FontWeight.bold, color: color)),
+        Text(label,
+            style: const TextStyle(fontSize: 11, color: Colors.grey)),
+      ],
+    );
+  }
+}
+
+class _VertDivider extends StatelessWidget {
+  const _VertDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: VerticalDivider(
+          thickness: 1, color: Theme.of(context).dividerColor),
     );
   }
 }

@@ -13,6 +13,7 @@ class SettingsService {
   static const _distanceUnitKey = 'distance_unit';
   static const _mapQsoCountKey = 'map_qso_count';
   static const _appThemeKey = 'app_theme';
+  static const _linksKey = 'custom_links';
 
   static Future<StationSettings> loadStation() async {
     final prefs = await SharedPreferences.getInstance();
@@ -110,5 +111,18 @@ class SettingsService {
   static Future<void> saveAppTheme(String theme) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_appThemeKey, theme);
+  }
+
+  static Future<List<CustomLink>> loadLinks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final json = prefs.getString(_linksKey);
+    if (json == null) return [];
+    final list = jsonDecode(json) as List;
+    return list.map((e) => CustomLink.fromJson(e)).toList();
+  }
+
+  static Future<void> saveLinks(List<CustomLink> links) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_linksKey, jsonEncode(links.map((l) => l.toJson()).toList()));
   }
 }

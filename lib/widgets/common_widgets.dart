@@ -127,7 +127,7 @@ class DistanceBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(label, style: const TextStyle(fontSize: 11)),
@@ -221,7 +221,7 @@ class _BandFrequencySelectorState extends State<BandFrequencySelector> {
         Expanded(
           flex: 2,
           child: DropdownButtonFormField<String>(
-            value: _mode.isEmpty ? null : (_modes.contains(_mode) ? _mode : null),
+            initialValue: _mode.isEmpty ? null : (_modes.contains(_mode) ? _mode : null),
             hint: const Text('Select Mode'),
             decoration: const InputDecoration(labelText: 'Mode', isDense: true),
             items: _modes.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
@@ -279,6 +279,20 @@ class _TagSelectorState extends State<TagSelector> {
       widget.onChanged(_selected);
     }
     _customCtrl.clear();
+
+    // Persist to global tag list if not already defined
+    final state = context.read<AppState>();
+    if (!state.tags.any((t) => t.name == tag)) {
+      final updated = [
+        ...state.tags,
+        TagDefinition(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          name: tag,
+          color: '#2196F3',
+        ),
+      ];
+      state.saveTags(updated);
+    }
   }
 
   @override
