@@ -18,20 +18,14 @@ import 'tags_screen.dart';
 import 'stats_screen.dart';
 import 'map_screen.dart';
 import 'quick_entry_screen.dart';
+import 'plugins_screen.dart';
+import '../plugins/plugin_registry.dart';
 import '../plugins/pota_hunter_plugin.dart';
 import '../plugins/sst_plugin.dart';
 import '../plugins/cwt_plugin.dart';
 import '../plugins/mst_plugin.dart';
 import '../plugins/pota_activator_plugin.dart';
-
-const _plugins = [
-  {'id': 'standard',       'label': 'Standard QSO',   'icon': Icons.radio},
-  {'id': 'pota_hunter',    'label': 'POTA Hunter',    'icon': Icons.park},
-  {'id': 'sst',            'label': 'SST',            'icon': Icons.speed},
-  {'id': 'cwt',            'label': 'CWT',            'icon': Icons.radio},
-  {'id': 'mst',            'label': 'MST',            'icon': Icons.swap_horiz},
-  {'id': 'pota_activator', 'label': 'POTA Activator', 'icon': Icons.hiking},
-];
+import '../plugins/contest_plugin.dart';
 
 class LogScreen extends StatefulWidget {
   const LogScreen({super.key});
@@ -68,6 +62,7 @@ class _LogScreenState extends State<LogScreen> {
       case 'cwt':            screen = const CwtPlugin(); break;
       case 'mst':            screen = const MstPlugin(); break;
       case 'pota_activator': screen = const PotaActivatorPlugin(); break;
+      case 'contest':        screen = const ContestPlugin(); break;
       default:               screen = const AddQsoScreen(); break;
     }
     Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
@@ -349,8 +344,7 @@ class _LogScreenState extends State<LogScreen> {
     final state = context.watch<AppState>();
     final qsos = state.filteredQsos;
     final hasSelection = state.selectedIds.isNotEmpty;
-    final activePluginInfo = _plugins.firstWhere(
-        (p) => p['id'] == state.activePlugin, orElse: () => _plugins.first);
+    final activePluginInfo = pluginById(state.activePlugin) ?? kPlugins.first;
 
     return Scaffold(
       appBar: AppBar(
@@ -398,6 +392,8 @@ class _LogScreenState extends State<LogScreen> {
               const PopupMenuDivider(),
               PopupMenuItem(child: const Text('Settings'),
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()))),
+              PopupMenuItem(child: const Text('Plugins'),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PluginsScreen()))),
               PopupMenuItem(child: const Text('Manage Tags'),
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TagsScreen()))),
               const PopupMenuDivider(),
@@ -438,21 +434,21 @@ class _LogScreenState extends State<LogScreen> {
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Row(children: _plugins.map((p) {
-                final isActive = p['id'] == state.activePlugin;
+              child: Row(children: state.visiblePlugins.map((p) {
+                final isActive = p.id == state.activePlugin;
                 return Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: ChoiceChip(
-                    avatar: Icon(p['icon'] as IconData, size: 16,
+                    avatar: Icon(p.icon, size: 16,
                         color: isActive ? Theme.of(context).colorScheme.onPrimary : null),
-                    label: Text(p['label'] as String),
+                    label: Text(p.label),
                     selected: isActive,
                     selectedColor: Theme.of(context).colorScheme.primary,
                     labelStyle: TextStyle(
                       color: isActive ? Theme.of(context).colorScheme.onPrimary : null,
                       fontSize: 12,
                     ),
-                    onSelected: (_) => state.setActivePlugin(p['id'] as String),
+                    onSelected: (_) => state.setActivePlugin(p.id),
                   ),
                 );
               }).toList()),
@@ -558,8 +554,8 @@ class _LogScreenState extends State<LogScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openActivePlugin(context),
-        icon: Icon(activePluginInfo['icon'] as IconData),
-        label: Text(activePluginInfo['label'] as String),
+        icon: Icon(activePluginInfo.icon),
+        label: Text(activePluginInfo.label),
       ),
     );
   }

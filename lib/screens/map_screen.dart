@@ -94,8 +94,8 @@ class _MapScreenState extends State<MapScreen> {
         polylines.add(Polyline(
           points: [LatLng(myLat, myLon), LatLng(q.contactLat!, q.contactLon!)],
           color: q == _selected
-              ? Colors.orange.withOpacity(0.9)
-              : Colors.orange.withOpacity(0.4),
+              ? Colors.orange.withValues(alpha: 0.9)
+              : Colors.orange.withValues(alpha: 0.4),
           strokeWidth: q == _selected ? 2.5 : 1.2,
         ));
       }
@@ -156,7 +156,7 @@ class _MapScreenState extends State<MapScreen> {
           Container(
             padding:
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-            color: Theme.of(context).colorScheme.surfaceVariant,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
             child: Row(children: [
               const Icon(Icons.home_filled, size: 14, color: Colors.green),
               const SizedBox(width: 4),

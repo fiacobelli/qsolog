@@ -14,6 +14,10 @@ class SettingsService {
   static const _mapQsoCountKey = 'map_qso_count';
   static const _appThemeKey = 'app_theme';
   static const _linksKey = 'custom_links';
+  static const _pluginOrderKey = 'plugin_order';
+  static const _visiblePluginsKey = 'visible_plugins';
+  static const _contestNameKey = 'contest_name';
+  static const _contestTxExchangeKey = 'contest_tx_exchange';
 
   static Future<StationSettings> loadStation() async {
     final prefs = await SharedPreferences.getInstance();
@@ -124,5 +128,49 @@ class SettingsService {
   static Future<void> saveLinks(List<CustomLink> links) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_linksKey, jsonEncode(links.map((l) => l.toJson()).toList()));
+  }
+
+  static Future<List<String>?> loadPluginOrder() async {
+    final prefs = await SharedPreferences.getInstance();
+    final json = prefs.getString(_pluginOrderKey);
+    if (json == null) return null;
+    return (jsonDecode(json) as List).map((e) => e.toString()).toList();
+  }
+
+  static Future<void> savePluginOrder(List<String> ids) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_pluginOrderKey, jsonEncode(ids));
+  }
+
+  static Future<List<String>?> loadVisiblePlugins() async {
+    final prefs = await SharedPreferences.getInstance();
+    final json = prefs.getString(_visiblePluginsKey);
+    if (json == null) return null;
+    return (jsonDecode(json) as List).map((e) => e.toString()).toList();
+  }
+
+  static Future<void> saveVisiblePlugins(List<String> ids) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_visiblePluginsKey, jsonEncode(ids));
+  }
+
+  static Future<String> loadContestName() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_contestNameKey) ?? '';
+  }
+
+  static Future<void> saveContestName(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_contestNameKey, name);
+  }
+
+  static Future<String> loadContestTxExchange() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_contestTxExchangeKey) ?? '';
+  }
+
+  static Future<void> saveContestTxExchange(String exchange) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_contestTxExchangeKey, exchange);
   }
 }

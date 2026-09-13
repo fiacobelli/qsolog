@@ -2,6 +2,7 @@
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import '../models/models.dart';
+import '../plugins/plugin_registry.dart';
 import 'database_service.dart';
 import 'settings_service.dart';
 import 'qrz_service.dart';
@@ -22,7 +23,39 @@ class AppState extends ChangeNotifier {
   int mapQsoCount = 10;
   String appTheme = 'default';
   List<CustomLink> customLinks = [];
+  List<String> pluginOrder = kPlugins.map((p) => p.id).toList();
+  Set<String> visiblePluginIds = kPlugins.map((p) => p.id).toSet();
+  String contestName = '';
+  String contestTxExchange = '';
   final QrzService qrzService = QrzService();
+
+  /// All known plugins, in the user's chosen order.
+  List<PluginInfo> get orderedPlugins =>
+      pluginOrder.map(pluginById).whereType<PluginInfo>().toList();
+
+  /// Plugins the user has chosen to show on the main screen, in order.
+  List<PluginInfo> get visiblePlugins =>
+      orderedPlugins.where((p) => visiblePluginIds.contains(p.id)).toList();
+
+  Future<void> savePluginSettings(List<String> order, Set<String> visible) async {
+    pluginOrder = List.from(order);
+    visiblePluginIds = Set.from(visible);
+    await SettingsService.savePluginOrder(pluginOrder);
+    await SettingsService.saveVisiblePlugins(visiblePluginIds.toList());
+    notifyListeners();
+  }
+
+  Future<void> saveContestName(String name) async {
+    contestName = name;
+    await SettingsService.saveContestName(name);
+    notifyListeners();
+  }
+
+  Future<void> saveContestTxExchange(String exchange) async {
+    contestTxExchange = exchange;
+    await SettingsService.saveContestTxExchange(exchange);
+    notifyListeners();
+  }
 
   // Last used band/mode/freq — carried forward to new QSOs
   String lastBand = '20m';
@@ -41,6 +74,19 @@ class AppState extends ChangeNotifier {
     mapQsoCount = await SettingsService.loadMapQsoCount();
     appTheme = await SettingsService.loadAppTheme();
     customLinks = await SettingsService.loadLinks();
+    final allIds = kPlugins.map((p) => p.id).toList();
+    final savedOrder = await SettingsService.loadPluginOrder();
+    if (savedOrder != null) {
+      final valid = savedOrder.where(allIds.contains).toList();
+      final missing = allIds.where((id) => !valid.contains(id));
+      pluginOrder = [...valid, ...missing];
+    }
+    final savedVisible = await SettingsService.loadVisiblePlugins();
+    if (savedVisible != null) {
+      visiblePluginIds = savedVisible.where(allIds.contains).toSet();
+    }
+    contestName = await SettingsService.loadContestName();
+    contestTxExchange = await SettingsService.loadContestTxExchange();
     await loadQsos();
     // Seed last band/mode/freq from most recent QSO
     if (qsos.isNotEmpty) {
@@ -95,12 +141,36 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Collapses "N days ago" / "N day ago" into a single token "daysago:N"
+  /// so the per-token parser can handle it without look-ahead.
+  static String _preprocessQuery(String q) => q.replaceAllMapped(
+    RegExp(r'(\d+)\s+days?\s+ago', caseSensitive: false),
+    (m) => 'daysago:${m.group(1)}',
+  );
+
+  /// Parses a date string that may be YYYY-MM-DD or MM-DD (assumes current year).
+  static DateTime? _parseSearchDate(String raw) {
+    final dt = DateTime.tryParse(raw);
+    if (dt != null) return dt;
+    final parts = raw.split('-');
+    if (parts.length == 2) {
+      final month = int.tryParse(parts[0]);
+      final day = int.tryParse(parts[1]);
+      if (month != null && day != null) {
+        return DateTime.utc(DateTime.now().year, month, day);
+      }
+    }
+    return null;
+  }
+
   void _applyFilter() {
     var result = qsos;
 
-    // Parse special operators out of the search query
-    // Supported: today  after:YYYY-MM-DD  before:YYYY-MM-DD  band:20m  mode:SSB
-    // Everything else is a plain text search
+    // Parse special operators out of the search query.
+    // Supported: today  yesterday  N days ago
+    //            after:/since:  before:  (YYYY-MM-DD or MM-DD)
+    //            band:20m  mode:SSB
+    // Everything else is a plain text search.
     DateTime? afterDate;
     DateTime? beforeDate;
     String? bandFilter;
@@ -108,19 +178,31 @@ class AppState extends ChangeNotifier {
     final plainTerms = <String>[];
 
     if (searchQuery.isNotEmpty) {
-      for (final token in searchQuery.trim().split(RegExp(r'\s+'))) {
+      for (final token in _preprocessQuery(searchQuery).trim().split(RegExp(r'\s+'))) {
         final lower = token.toLowerCase();
         if (lower == 'today') {
           final now = DateTime.now().toUtc();
           afterDate = DateTime.utc(now.year, now.month, now.day);
           beforeDate = afterDate.add(const Duration(days: 1));
-        } else if (lower.startsWith('after:')) {
-          final raw = token.substring(6);
-          afterDate = DateTime.tryParse(raw);
+        } else if (lower == 'yesterday') {
+          final now = DateTime.now().toUtc();
+          final yesterday = DateTime.utc(now.year, now.month, now.day)
+              .subtract(const Duration(days: 1));
+          afterDate = yesterday;
+          beforeDate = yesterday.add(const Duration(days: 1));
+        } else if (lower.startsWith('daysago:')) {
+          final n = int.tryParse(token.substring(8));
+          if (n != null) {
+            final now = DateTime.now().toUtc();
+            final target = DateTime.utc(now.year, now.month, now.day)
+                .subtract(Duration(days: n));
+            afterDate = target;
+            beforeDate = target.add(const Duration(days: 1));
+          }
+        } else if (lower.startsWith('after:') || lower.startsWith('since:')) {
+          afterDate = _parseSearchDate(token.substring(6));
         } else if (lower.startsWith('before:')) {
-          final raw = token.substring(7);
-          beforeDate = DateTime.tryParse(raw);
-          // Make before: inclusive of the full day
+          beforeDate = _parseSearchDate(token.substring(7));
           if (beforeDate != null) {
             beforeDate = beforeDate.add(const Duration(days: 1));
           }
@@ -186,10 +268,16 @@ class AppState extends ChangeNotifier {
   Map<String, String> get activeSearchOperators {
     final ops = <String, String>{};
     if (searchQuery.isEmpty) return ops;
-    for (final token in searchQuery.trim().split(RegExp(r'\s+'))) {
+    for (final token in _preprocessQuery(searchQuery).trim().split(RegExp(r'\s+'))) {
       final lower = token.toLowerCase();
       if (lower == 'today') {
         ops['today'] = 'today';
+      } else if (lower == 'yesterday') {
+        ops['yesterday'] = 'yesterday';
+      } else if (lower.startsWith('daysago:')) {
+        ops['daysago'] = token.substring(8);
+      } else if (lower.startsWith('since:')) {
+        ops['since'] = token.substring(6);
       } else if (lower.startsWith('after:') || lower.startsWith('before:') ||
           lower.startsWith('band:') || lower.startsWith('mode:')) {
         final colon = token.indexOf(':');
