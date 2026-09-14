@@ -2,7 +2,7 @@
 AppName=QSOLog
 AppVersion=1.0.0
 AppPublisher=Francisco Iacobelli
-AppPublisherURL=https://buymeacoffee.com/fiacobelli
+AppPublisherURL=https://fiacobelli.github.io/qsolog/
 DefaultDirName={autopf}\QSOLog
 DefaultGroupName=QSOLog
 OutputDir=.\installer

@@ -427,31 +427,38 @@ class _LogScreenState extends State<LogScreen> {
       ),
       body: Column(
         children: [
-          // Plugin selector bar
+          // Rig card + plugin selector bar
           Container(
             color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.4),
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Row(children: state.visiblePlugins.map((p) {
-                final isActive = p.id == state.activePlugin;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: ChoiceChip(
-                    avatar: Icon(p.icon, size: 16,
-                        color: isActive ? Theme.of(context).colorScheme.onPrimary : null),
-                    label: Text(p.label),
-                    selected: isActive,
-                    selectedColor: Theme.of(context).colorScheme.primary,
-                    labelStyle: TextStyle(
-                      color: isActive ? Theme.of(context).colorScheme.onPrimary : null,
-                      fontSize: 12,
-                    ),
-                    onSelected: (_) => state.setActivePlugin(p.id),
+            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+            child: Row(
+              children: [
+                _RigCard(rig: state.activeRig),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(children: state.visiblePlugins.map((p) {
+                      final isActive = p.id == state.activePlugin;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: ChoiceChip(
+                          avatar: Icon(p.icon, size: 16,
+                              color: isActive ? Theme.of(context).colorScheme.onPrimary : null),
+                          label: Text(p.label),
+                          selected: isActive,
+                          selectedColor: Theme.of(context).colorScheme.primary,
+                          labelStyle: TextStyle(
+                            color: isActive ? Theme.of(context).colorScheme.onPrimary : null,
+                            fontSize: 12,
+                          ),
+                          onSelected: (_) => state.setActivePlugin(p.id),
+                        ),
+                      );
+                    }).toList()),
                   ),
-                );
-              }).toList()),
+                ),
+              ],
             ),
           ),
           // Search bar
@@ -756,6 +763,42 @@ class _QsoTile extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RigCard extends StatelessWidget {
+  final RigDefinition? rig;
+  const _RigCard({required this.rig});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Theme.of(context).colorScheme.surface,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const SettingsScreen(initialTabIndex: 1))),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                rig?.name ?? 'No Rig',
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+              if (rig != null)
+                Text(
+                  '${rig!.power.toStringAsFixed(0)} W',
+                  style: TextStyle(fontSize: 10, color: Theme.of(context).hintColor),
+                ),
+            ],
+          ),
         ),
       ),
     );

@@ -6,7 +6,8 @@ import '../services/app_state.dart';
 import '../app_themes.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final int initialTabIndex;
+  const SettingsScreen({super.key, this.initialTabIndex = 0});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -18,7 +19,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 5, vsync: this);
+    _tabs = TabController(length: 5, vsync: this, initialIndex: widget.initialTabIndex);
   }
 
   @override
