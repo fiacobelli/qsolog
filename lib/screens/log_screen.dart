@@ -33,6 +33,36 @@ class LogScreen extends StatefulWidget {
   State<LogScreen> createState() => _LogScreenState();
 }
 
+/// Prepends https:// to a URL that's missing a scheme (e.g. a custom link
+/// saved as "qrz.com" instead of "https://qrz.com") — url_launcher silently
+/// fails to open a schemeless URL.
+Uri? _normalizeUrl(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) return null;
+  final withScheme = RegExp(r'^[a-zA-Z][a-zA-Z0-9+.-]*://').hasMatch(trimmed)
+      ? trimmed
+      : 'https://$trimmed';
+  return Uri.tryParse(withScheme);
+}
+
+/// Launches a URL externally, surfacing a SnackBar if it fails instead of
+/// failing silently (e.g. no browser found, malformed URL).
+Future<void> _launchExternalUrl(BuildContext context, String rawUrl) async {
+  final uri = _normalizeUrl(rawUrl);
+  var ok = false;
+  if (uri != null) {
+    try {
+      ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      ok = false;
+    }
+  }
+  if (!ok && context.mounted) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('Could not open $rawUrl')));
+  }
+}
+
 class _LogScreenState extends State<LogScreen> {
   final _searchCtrl = TextEditingController();
   late Timer _clockTimer;
@@ -403,8 +433,7 @@ class _LogScreenState extends State<LogScreen> {
                   SizedBox(width: 8),
                   Text('Buy me a coffee'),
                 ]),
-                onTap: () => launchUrl(Uri.parse('https://buymeacoffee.com/fiacobelli'),
-                    mode: LaunchMode.externalApplication),
+                onTap: () => _launchExternalUrl(context, 'https://buymeacoffee.com/fiacobelli'),
               ),
               if (state.customLinks.isNotEmpty) ...[
                 const PopupMenuDivider(),
@@ -414,10 +443,7 @@ class _LogScreenState extends State<LogScreen> {
                     const SizedBox(width: 10),
                     Text(link.name),
                   ]),
-                  onTap: () => launchUrl(
-                    Uri.parse(link.url),
-                    mode: LaunchMode.externalApplication,
-                  ),
+                  onTap: () => _launchExternalUrl(context, link.url),
                 )),
               ],
             ]),
@@ -644,12 +670,8 @@ class _QsoTile extends StatelessWidget {
                               fontWeight: FontWeight.bold, fontSize: 15)),
                       // QRZ link icon
                       GestureDetector(
-                        onTap: () async {
-                          final url = Uri.parse(
-                              'https://www.qrz.com/db/${qso.callsign}');
-                          if (await canLaunchUrl(url)) launchUrl(url,
-                              mode: LaunchMode.externalApplication);
-                        },
+                        onTap: () => _launchExternalUrl(
+                            context, 'https://www.qrz.com/db/${qso.callsign}'),
                         child: Tooltip(
                           message: 'Open QRZ page for ${qso.callsign}',
                           child: Container(

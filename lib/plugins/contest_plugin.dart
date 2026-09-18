@@ -203,7 +203,7 @@ class _ContestPluginState extends State<ContestPlugin> {
             ),
             const SizedBox(height: 12),
 
-            // Frequency / Band (synced like every other plugin)
+            // Frequency / Band / Mode
             Row(
               children: [
                 Expanded(
@@ -231,40 +231,52 @@ class _ContestPluginState extends State<ContestPlugin> {
                     child: Text(_band, style: Theme.of(context).textTheme.bodyMedium),
                   ),
                 ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 2,
+                  child: DropdownMenu<String>(
+                    controller: _modeCtrl,
+                    expandedInsets: EdgeInsets.zero,
+                    enableFilter: true,
+                    requestFocusOnTap: true,
+                    label: const Text('Mode'),
+                    dropdownMenuEntries: _contestModes
+                        .map((m) => DropdownMenuEntry(value: m, label: m))
+                        .toList(),
+                    onSelected: (v) {
+                      if (v != null) _modeCtrl.text = v;
+                    },
+                  ),
+                ),
               ],
-            ),
-            const SizedBox(height: 12),
-
-            // Mode — writable dropdown
-            DropdownMenu<String>(
-              controller: _modeCtrl,
-              expandedInsets: EdgeInsets.zero,
-              enableFilter: true,
-              requestFocusOnTap: true,
-              label: const Text('Mode'),
-              dropdownMenuEntries: _contestModes
-                  .map((m) => DropdownMenuEntry(value: m, label: m))
-                  .toList(),
-              onSelected: (v) {
-                if (v != null) _modeCtrl.text = v;
-              },
             ),
             const SizedBox(height: 20),
 
-            // Callsign
+            // Callsign / RST received / RST sent
             Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
+                  flex: 3,
                   child: TextField(
                     controller: _callCtrl,
                     focusNode: _callFocusNode,
                     autofocus: true,
                     textCapitalization: TextCapitalization.characters,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Callsign',
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
                       hintText: 'Enter callsign...',
+                      suffixIcon: _lookingUp
+                          ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            )
+                          : null,
                     ),
                     onSubmitted: (v) => _lookupCallsign(v),
                     onChanged: (v) {
@@ -277,22 +289,6 @@ class _ContestPluginState extends State<ContestPlugin> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                if (_lookingUp)
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 8),
-                    child: SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            // RST
-            Row(
-              children: [
                 Expanded(
                   child: TextField(
                     controller: _rstRcvdCtrl,
@@ -318,25 +314,31 @@ class _ContestPluginState extends State<ContestPlugin> {
             ),
             const SizedBox(height: 12),
 
-            // Operator name (auto-filled from QRZ)
-            TextField(
-              controller: _nameCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Operator Name',
-                border: OutlineInputBorder(),
-                helperText: 'Auto-filled from QRZ if available',
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // QTH (auto-filled from QRZ)
-            TextField(
-              controller: _qthCtrl,
-              decoration: const InputDecoration(
-                labelText: 'QTH',
-                border: OutlineInputBorder(),
-                helperText: 'Auto-filled from QRZ if available',
-              ),
+            // Operator name / QTH (auto-filled from QRZ)
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _nameCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Operator Name',
+                      border: OutlineInputBorder(),
+                      helperText: 'Auto-filled from QRZ if available',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: _qthCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'QTH',
+                      border: OutlineInputBorder(),
+                      helperText: 'Auto-filled from QRZ if available',
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
 

@@ -904,8 +904,13 @@ class _LinksTabState extends State<_LinksTab> {
           ElevatedButton(
             onPressed: () {
               final name = nameCtrl.text.trim();
-              final url = urlCtrl.text.trim();
-              if (name.isEmpty || url.isEmpty) return;
+              final rawUrl = urlCtrl.text.trim();
+              if (name.isEmpty || rawUrl.isEmpty) return;
+              // Ensure a scheme is present — a bare "qrz.com" has no scheme
+              // and url_launcher silently fails to open it.
+              final url = RegExp(r'^[a-zA-Z][a-zA-Z0-9+.-]*://').hasMatch(rawUrl)
+                  ? rawUrl
+                  : 'https://$rawUrl';
               setState(() {
                 if (existing != null) {
                   _links[index!] = CustomLink(name: name, url: url);
