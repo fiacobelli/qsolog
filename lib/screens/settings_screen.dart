@@ -351,6 +351,7 @@ class _RigTabState extends State<_RigTab> {
                   if (_rigs.length == 1) _activeRigId = newRig.id;
                 }
               });
+              _save();
               Navigator.pop(context);
             },
             child: const Text('Save'),
@@ -364,7 +365,6 @@ class _RigTabState extends State<_RigTab> {
     final state = context.read<AppState>();
     await state.saveRigs(_rigs);
     await state.setActiveRig(_activeRigId);
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rigs saved')));
   }
 
   @override
@@ -408,7 +408,10 @@ class _RigTabState extends State<_RigTab> {
                         leading: Radio<String>(
                           value: rig.id,
                           groupValue: _activeRigId,
-                          onChanged: (v) => setState(() => _activeRigId = v!),
+                          onChanged: (v) {
+                            setState(() => _activeRigId = v!);
+                            _save();
+                          },
                         ),
                         title: Text(rig.name, style: const TextStyle(fontWeight: FontWeight.w600)),
                         subtitle: Text('${rig.power.toStringAsFixed(0)} W'),
@@ -428,14 +431,20 @@ class _RigTabState extends State<_RigTab> {
                             IconButton(icon: const Icon(Icons.edit, size: 20), onPressed: () => _editRig(i)),
                             IconButton(
                               icon: const Icon(Icons.delete, size: 20),
-                              onPressed: () => setState(() {
-                                if (_activeRigId == rig.id) _activeRigId = '';
-                                _rigs.removeAt(i);
-                              }),
+                              onPressed: () {
+                                setState(() {
+                                  if (_activeRigId == rig.id) _activeRigId = '';
+                                  _rigs.removeAt(i);
+                                });
+                                _save();
+                              },
                             ),
                           ],
                         ),
-                        onTap: () => setState(() => _activeRigId = rig.id),
+                        onTap: () {
+                          setState(() => _activeRigId = rig.id);
+                          _save();
+                        },
                       ),
                     );
                   },
@@ -443,24 +452,12 @@ class _RigTabState extends State<_RigTab> {
         ),
         Padding(
           padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _addRig,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Rig'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _save,
-                  icon: const Icon(Icons.save),
-                  label: const Text('Save'),
-                ),
-              ),
-            ],
+          child: Center(
+            child: IconButton.filled(
+              onPressed: _addRig,
+              icon: const Icon(Icons.add),
+              tooltip: 'Add rig',
+            ),
           ),
         ),
       ],
@@ -918,6 +915,7 @@ class _LinksTabState extends State<_LinksTab> {
                   _links.add(CustomLink(name: name, url: url));
                 }
               });
+              _save();
               Navigator.pop(context);
             },
             child: const Text('Save'),
@@ -927,13 +925,7 @@ class _LinksTabState extends State<_LinksTab> {
     );
   }
 
-  Future<void> _save() async {
-    await context.read<AppState>().saveCustomLinks(_links);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Links saved')));
-    }
-  }
+  Future<void> _save() => context.read<AppState>().saveCustomLinks(_links);
 
   @override
   Widget build(BuildContext context) {
@@ -984,8 +976,10 @@ class _LinksTabState extends State<_LinksTab> {
                             ),
                             IconButton(
                               icon: const Icon(Icons.delete, size: 20),
-                              onPressed: () =>
-                                  setState(() => _links.removeAt(i)),
+                              onPressed: () {
+                                setState(() => _links.removeAt(i));
+                                _save();
+                              },
                             ),
                           ],
                         ),
@@ -997,24 +991,12 @@ class _LinksTabState extends State<_LinksTab> {
         ),
         Padding(
           padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _showDialog(),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Link'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _save,
-                  icon: const Icon(Icons.save),
-                  label: const Text('Save'),
-                ),
-              ),
-            ],
+          child: Center(
+            child: IconButton.filled(
+              onPressed: () => _showDialog(),
+              icon: const Icon(Icons.add),
+              tooltip: 'Add link',
+            ),
           ),
         ),
       ],
