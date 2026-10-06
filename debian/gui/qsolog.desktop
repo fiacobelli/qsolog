@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0.0
+Name=qsolog
+GenericName=qsolog
+Comment=QSOLog - Ham Radio QSO Logger
+Terminal=false
+Type=Application
+Categories=Utility
+Keywords=Flutter
+Exec=qsolog
+Icon=qsolog;

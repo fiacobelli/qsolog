@@ -1,0 +1,19 @@
+# linux/packaging/deb/make_config.yaml
+display_name: qsolog
+package_name: qsolog
+generic_name: QSOLog
+summary: "An amateur radio QSO logging application."
+description: "A basic, yet powerful ham radio logging app. Map your QSOs, tag them, and use plugins for special activities. Also, synch it with QRZ!"
+maintainer:
+  name: "Francisco Iacobelli"
+  email: "francisco@iacobelli.cl"
+# Path to your app icon relative to project root
+icon: debian/gui/qsolog.png
+categories:
+  - Utility
+# Correctly mapped Debian system dependencies
+depends:
+  - libgtk-3-0
+  - libblkid1
+  - liblzma5
+  - libc6

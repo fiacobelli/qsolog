@@ -1,0 +1,17 @@
+flutter_app: 
+  command: qsolog
+  arch: x64
+  parent: /usr/local/lib
+  nonInteractive: false
+
+control:
+  Package: qsolog
+  Version: 1.0.0
+  Architecture: amd64
+  Priority: optional
+  Depends: libgtk-3-0, libstdc++6, libc6
+  Maintainer: Francisco Iacobelli
+  Description: Mega Cool App that does everything!
+  
+#options:
+#  exec_out_dir: debian/packages
