@@ -117,6 +117,24 @@ class _PotaHunterPluginState extends State<PotaHunterPlugin> {
     return i == -1 ? 999 : i;
   }
 
+  /// True if a POTA-tagged QSO logged today already matches this spot's
+  /// callsign, band, mode and park reference.
+  bool _isWorkedToday(PotaSpot spot, List<QsoEntry> qsos) {
+    final band = BandFrequency.bandFromFrequency(spot.frequency);
+    final now = DateTime.now().toUtc();
+    return qsos.any((q) {
+      if (!q.tags.contains('POTA')) return false;
+      final d = q.dateTime.toUtc();
+      if (d.year != now.year || d.month != now.month || d.day != now.day) return false;
+      if (q.callsign.toUpperCase() != spot.activatorCallsign.toUpperCase()) return false;
+      if (q.band.toLowerCase() != band.toLowerCase()) return false;
+      if (q.mode.toUpperCase() != spot.mode.toUpperCase()) return false;
+      final sigInfo = q.adifFields['SIG_INFO'] ?? '';
+      if (sigInfo.toUpperCase() != spot.parkReference.toUpperCase()) return false;
+      return true;
+    });
+  }
+
   Color _modeColor(String mode) {
     switch (mode.toUpperCase()) {
       case 'SSB':   return Colors.blue.shade700;
@@ -134,6 +152,7 @@ class _PotaHunterPluginState extends State<PotaHunterPlugin> {
   @override
   Widget build(BuildContext context) {
     final filtered = _filtered;
+    final qsos = context.watch<AppState>().qsos;
 
     return Scaffold(
       appBar: AppBar(
@@ -288,6 +307,7 @@ class _PotaHunterPluginState extends State<PotaHunterPlugin> {
                             itemBuilder: (_, i) => _SpotTile(
                               spot: filtered[i],
                               modeColor: _modeColor(filtered[i].mode),
+                              worked: _isWorkedToday(filtered[i], qsos),
                               onTap: () => Navigator.push(context,
                                   MaterialPageRoute(builder: (_) => _PotaContactForm(spot: filtered[i]))),
                             ),
@@ -356,9 +376,15 @@ class _FilterRow extends StatelessWidget {
 class _SpotTile extends StatelessWidget {
   final PotaSpot spot;
   final Color modeColor;
+  final bool worked;
   final VoidCallback onTap;
 
-  const _SpotTile({required this.spot, required this.modeColor, required this.onTap});
+  const _SpotTile({
+    required this.spot,
+    required this.modeColor,
+    required this.worked,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -441,6 +467,8 @@ class _SpotTile extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           minimumSize: const Size(56, 34),
+          backgroundColor: worked ? Colors.grey.shade400 : null,
+          foregroundColor: worked ? Colors.grey.shade800 : null,
         ),
         child: const Text('Log'),
       ),
@@ -584,7 +612,7 @@ class _PotaContactFormState extends State<_PotaContactForm> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(
                 'Logged ${qso.callsign} — ${widget.spot.parkReference}')));
-        Navigator.pop(context);
+        // Return to the POTA Hunter list (same instance — filters are preserved).
         Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
