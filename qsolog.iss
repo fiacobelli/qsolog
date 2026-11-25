@@ -1,6 +1,6 @@
 [Setup]
 AppName=QSOLog
-AppVersion=1.0.0
+AppVersion=1.1.0
 AppPublisher=Francisco Iacobelli
 AppPublisherURL=https://fiacobelli.github.io/qsolog/
 DefaultDirName={autopf}\QSOLog

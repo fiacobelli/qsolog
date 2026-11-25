@@ -52,7 +52,9 @@ static void my_application_activate(GApplication* application) {
     gtk_window_set_title(window, "qsolog");
   }
 
-  gtk_window_set_default_size(window, 1280, 720);
+  // 1:1.3 width:height ratio — a bit narrower and taller than a typical
+  // desktop default, to better fit this app's mobile-style forms.
+  gtk_window_set_default_size(window, 700, 910);
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(

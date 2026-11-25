@@ -40,6 +40,12 @@ class _PotaActivatorPluginState extends State<PotaActivatorPlugin> {
   // Country/entity of the activated park, fetched from park detail API
   String _parkEntity = '';
 
+  // True once the user has typed into the park name field themselves —
+  // once set, an in-flight/late network lookup must never overwrite it.
+  bool _parkNameEditedByUser = false;
+  // Guards the listener above while we set the controller's text ourselves.
+  bool _settingParkNameProgrammatically = false;
+
   @override
   void initState() {
     super.initState();
@@ -47,6 +53,10 @@ class _PotaActivatorPluginState extends State<PotaActivatorPlugin> {
     _freq = state.lastFreq;
     _band = state.lastBand;
     // Intentionally no default mode — user must select one
+
+    _parkNameCtrl.addListener(() {
+      if (!_settingParkNameProgrammatically) _parkNameEditedByUser = true;
+    });
   }
 
   @override
@@ -59,21 +69,44 @@ class _PotaActivatorPluginState extends State<PotaActivatorPlugin> {
     super.dispose();
   }
 
-  Future<void> _fetchParkEntity() async {
+  /// Debounced trigger for a park reference lookup. Runs as a non-blocking
+  /// network call (Dart's I/O is async off the UI thread) so a slow or
+  /// missing internet connection never holds up data entry.
+  void _onParkRefChanged(String raw) {
+    setState(() {}); // re-check "Start Activation" enablement
+    final ref = raw.trim().toUpperCase();
+    if (ref.isEmpty) return;
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (_parkCtrl.text.trim().toUpperCase() == ref) _fetchParkInfo(ref);
+    });
+  }
+
+  Future<void> _fetchParkInfo(String ref) async {
+    if (ref.isEmpty) return;
     try {
-      final ref = _parkCtrl.text.trim().toUpperCase();
-      if (ref.isEmpty) return;
       final resp = await http.get(
         Uri.parse('https://api.pota.app/park/$ref'),
       ).timeout(const Duration(seconds: 10));
+      // The reference may have changed again while this request was in flight.
+      if (!mounted || _parkCtrl.text.trim().toUpperCase() != ref) return;
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body) as Map<String, dynamic>;
-        final entity = data['entity']?.toString() ?? '';
-        if (entity.isNotEmpty && mounted) {
-          setState(() => _parkEntity = entity);
-        }
+        // The POTA park API returns the country as "entityName", not "entity".
+        final entity = data['entityName']?.toString() ?? '';
+        final name = data['name']?.toString() ?? '';
+        setState(() {
+          if (entity.isNotEmpty) _parkEntity = entity;
+          // Never clobber a name the user typed themselves.
+          if (name.isNotEmpty && !_parkNameEditedByUser) {
+            _settingParkNameProgrammatically = true;
+            _parkNameCtrl.text = name;
+            _settingParkNameProgrammatically = false;
+          }
+        });
       }
-    } catch (_) {}
+    } catch (_) {
+      // No internet / request failed — silently leave whatever is there.
+    }
   }
 
   Future<void> _fetchPotaSpots() async {
@@ -211,7 +244,7 @@ class _PotaActivatorPluginState extends State<PotaActivatorPlugin> {
               border: OutlineInputBorder(),
             ),
             textCapitalization: TextCapitalization.characters,
-            onChanged: (_) => setState(() {}),
+            onChanged: _onParkRefChanged,
           ),
           const SizedBox(height: 12),
           TextField(
@@ -219,6 +252,7 @@ class _PotaActivatorPluginState extends State<PotaActivatorPlugin> {
             decoration: const InputDecoration(
               labelText: 'Park Name',
               border: OutlineInputBorder(),
+              helperText: 'Auto-filled from POTA once you enter a reference',
             ),
           ),
           const SizedBox(height: 16),
@@ -236,7 +270,7 @@ class _PotaActivatorPluginState extends State<PotaActivatorPlugin> {
                   ? () {
                       setState(() => _parkConfigured = true);
                       _fetchPotaSpots();
-                      _fetchParkEntity();
+                      _fetchParkInfo(_parkCtrl.text.trim().toUpperCase());
                     }
                   : null,
               icon: const Icon(Icons.hiking),

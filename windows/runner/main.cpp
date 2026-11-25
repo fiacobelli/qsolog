@@ -36,7 +36,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
-  Win32Window::Size size(1280, 720);
+  // 1:1.3 width:height ratio — a bit narrower and taller than a typical
+  // desktop default, to better fit this app's mobile-style forms.
+  Win32Window::Size size(700, 910);
   if (!window.Create(L"qsolog", origin, size)) {
     return EXIT_FAILURE;
   }

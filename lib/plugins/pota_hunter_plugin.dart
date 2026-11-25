@@ -537,8 +537,10 @@ class _PotaContactFormState extends State<_PotaContactForm> {
         final data = jsonDecode(resp.body) as Map<String, dynamic>;
         final lat = double.tryParse(data['latitude']?.toString() ?? '');
         final lon = double.tryParse(data['longitude']?.toString() ?? '');
-        final grid = data['grid']?.toString() ?? '';
-        final entity = data['entity']?.toString() ?? '';
+        // The POTA park API returns these as "grid6" and "entityName",
+        // not "grid" and "entity".
+        final grid = data['grid6']?.toString() ?? '';
+        final entity = data['entityName']?.toString() ?? '';
         if (mounted) {
           setState(() {
             if (lat != null) _contactLat = lat;
